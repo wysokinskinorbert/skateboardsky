@@ -1,5 +1,6 @@
 import { Canvas } from '@react-three/fiber'
 import { SkyDome } from '../sky/SkyDome'
+import { CloudLayer } from '../sky/CloudLayer'
 import { Planet } from '../sky/Planet'
 import { CameraSetup } from './CameraSetup'
 import { PostProcessingStack } from '../postprocessing/PostProcessingStack'
@@ -17,6 +18,7 @@ export function GameScene() {
       }}
       gl={{
         antialias: true,
+        alpha: false,
         toneMapping: COLOR_GRADING.toneMapping,
         toneMappingExposure: COLOR_GRADING.toneMappingExposure,
         outputColorSpace: THREE.SRGBColorSpace,
@@ -24,9 +26,12 @@ export function GameScene() {
       style={{ width: '100%', height: '100%' }}
     >
       <CameraSetup />
+      <color attach="background" args={['#000000']} />
       <SkyDome />
       {/* Phase 2: render order — back clouds (1) → planet (2) → front clouds (3) */}
+      <CloudLayer layer="back" />
       <Planet />
+      <CloudLayer layer="front" />
       <PostProcessingStack />
 
       {/* Ambient fill light — cool blue like Shinkai shadows */}

@@ -1,8 +1,10 @@
 import * as THREE from 'three'
 
 /**
- * Planet body shader — dark teal sphere with subtle surface noise
- * and Fresnel darkening at edges (limb darkening, like real planets).
+ * Planet body shader — dark teal sphere with subtle surface noise,
+ * Fresnel limb darkening, and integrated atmosphere rim glow.
+ * The atmosphere glow is emissive Fresnel at the body edge (power 12)
+ * replacing the previous separate atmosphere sphere approach.
  */
 
 const bodyVertexShader = /* glsl */ `
@@ -43,6 +45,9 @@ const bodyFragmentShader = /* glsl */ `
     return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
   }
 
+  uniform vec3 uAtmosphereColor;
+  uniform float uAtmosphereIntensity;
+
   void main() {
     vec3 normal = normalize(vNormal);
     vec3 viewDir = normalize(vViewDir);
@@ -55,76 +60,41 @@ const bodyFragmentShader = /* glsl */ `
     vec2 uv = vec2(atan(normal.z, normal.x) * 2.0, normal.y * 3.0);
     float surfaceNoise = noise(uv * 8.0) * 0.15 + noise(uv * 16.0) * 0.08;
 
-    // Limb darkening — edges darker (Fresnel), but keep body visible
+    // Fresnel — used for both limb darkening AND atmosphere rim glow
     float fresnel = dot(normal, viewDir);
+
+    // Limb darkening — edges darker
     float limbDarkening = smoothstep(0.0, 0.5, fresnel) * 0.7 + 0.3;
 
-    vec3 color = uBodyColor * (1.0 + surfaceNoise) * diffuse * limbDarkening;
+    vec3 bodyColor = uBodyColor * (1.0 + surfaceNoise) * diffuse * limbDarkening;
+
+    // Atmosphere rim glow — emissive at the very edge of the body silhouette
+    // This replaces the separate atmosphere sphere — glow is ONLY on the body edge
+    float rimFresnel = 1.0 - fresnel;
+    float rimGlow = pow(rimFresnel, 12.0) * uAtmosphereIntensity;
+    vec3 atmosphereGlow = uAtmosphereColor * rimGlow;
+
+    // Blend: body transitions to bright atmosphere glow at the rim
+    vec3 color = bodyColor + atmosphereGlow;
 
     gl_FragColor = vec4(color, 1.0);
   }
 `
 
-/**
- * Atmosphere rim shader — Fresnel glow on slightly larger sphere.
- * Uses additive blending so glow adds to scene.
- * HDR intensity > 1.0 triggers bloom in post-processing.
- */
-
-const atmosphereVertexShader = /* glsl */ `
-  varying vec3 vNormal;
-  varying vec3 vViewDir;
-
-  void main() {
-    vNormal = normalize(normalMatrix * normal);
-    vec4 worldPos = modelMatrix * vec4(position, 1.0);
-    vViewDir = normalize(cameraPosition - worldPos.xyz);
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-  }
-`
-
-const atmosphereFragmentShader = /* glsl */ `
-  uniform vec3 uAtmosphereColor;
-  uniform float uIntensity;
-
-  varying vec3 vNormal;
-  varying vec3 vViewDir;
-
-  void main() {
-    vec3 normal = normalize(vNormal);
-    vec3 viewDir = normalize(vViewDir);
-
-    // Fresnel — bright only at very edges, transparent at center
-    float fresnel = 1.0 - max(dot(normal, viewDir), 0.0);
-    float glow = pow(fresnel, 5.0) * uIntensity;  // higher power = thinner rim
-
-    // Strict rim mask — only the outermost edge glows
-    float rimMask = smoothstep(0.2, 0.7, fresnel);
-
-    vec3 color = uAtmosphereColor * glow;
-    float alpha = rimMask * glow * 0.8;
-
-    gl_FragColor = vec4(color, alpha);
-  }
-`
-
-export function createPlanetBodyUniforms(sunDirection: THREE.Vector3) {
+export function createPlanetBodyUniforms(
+  sunDirection: THREE.Vector3,
+  atmosphereColor: THREE.Color,
+  atmosphereIntensity: number,
+) {
   return {
     uBodyColor: { value: new THREE.Color('#1A4060') },
     uSunDirection: { value: sunDirection.clone().normalize() },
-  }
-}
-
-export function createAtmosphereUniforms(color: THREE.Color, intensity: number) {
-  return {
-    uAtmosphereColor: { value: color.clone() },
-    uIntensity: { value: intensity },
+    uAtmosphereColor: { value: atmosphereColor.clone() },
+    uAtmosphereIntensity: { value: atmosphereIntensity },
   }
 }
 
 export {
   bodyVertexShader,
   bodyFragmentShader,
-  atmosphereVertexShader,
-  atmosphereFragmentShader,
 }

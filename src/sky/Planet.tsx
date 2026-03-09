@@ -4,18 +4,15 @@ import { SKY, PLANET } from '../game/constants'
 import {
   bodyVertexShader,
   bodyFragmentShader,
-  atmosphereVertexShader,
-  atmosphereFragmentShader,
   createPlanetBodyUniforms,
-  createAtmosphereUniforms,
 } from './PlanetMaterial'
 
 /**
  * Giant planet visible as a wide arc in the upper sky.
- * Three layers:
- * 1. Body sphere — dark teal with surface detail and limb darkening
- * 2. Atmosphere sphere — slightly larger, Fresnel rim glow (HDR for bloom)
- * 3. Ring — thin torus with emissive material
+ * Two layers:
+ * 1. Body sphere — dark teal with surface detail, limb darkening, and atmosphere rim glow
+ *    (rim glow is emissive Fresnel in the body shader itself — no separate atmosphere sphere)
+ * 2. Ring — thin torus with emissive material
  */
 export function Planet() {
   const sunDirection = useMemo(() => {
@@ -29,38 +26,23 @@ export function Planet() {
   }, [])
 
   const bodyUniforms = useMemo(
-    () => createPlanetBodyUniforms(sunDirection),
+    () => createPlanetBodyUniforms(
+      sunDirection,
+      PLANET.atmosphereColor,
+      PLANET.atmosphereIntensity,
+    ),
     [sunDirection]
-  )
-
-  const atmosphereUniforms = useMemo(
-    () => createAtmosphereUniforms(PLANET.atmosphereColor, PLANET.atmosphereIntensity),
-    []
   )
 
   return (
     <group position={PLANET.position}>
-      {/* Planet body */}
+      {/* Planet body + integrated atmosphere rim glow */}
       <mesh renderOrder={2}>
         <sphereGeometry args={[PLANET.radius, 64, 64]} />
         <shaderMaterial
           vertexShader={bodyVertexShader}
           fragmentShader={bodyFragmentShader}
           uniforms={bodyUniforms}
-        />
-      </mesh>
-
-      {/* Atmosphere rim glow */}
-      <mesh renderOrder={2} scale={PLANET.atmosphereScale}>
-        <sphereGeometry args={[PLANET.radius, 64, 64]} />
-        <shaderMaterial
-          vertexShader={atmosphereVertexShader}
-          fragmentShader={atmosphereFragmentShader}
-          uniforms={atmosphereUniforms}
-          transparent
-          blending={THREE.AdditiveBlending}
-          side={THREE.BackSide}
-          depthWrite={false}
         />
       </mesh>
 

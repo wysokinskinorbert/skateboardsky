@@ -39,31 +39,33 @@ export const PLANET = {
   radius: 800,
   bodyColor: new THREE.Color('#1A4060'),        // dark teal (from keyframes)
   atmosphereColor: new THREE.Color('#50D0F0'),  // bright cyan rim
-  atmosphereIntensity: 1.5,                      // HDR for bloom (softer)
-  atmosphereScale: 1.04,                         // tighter to body
+  atmosphereIntensity: 0.5,                      // rim glow — power 12 Fresnel, below bloom threshold
+  atmosphereScale: 1.025,                        // very tight to body — thin rim
   ringColor: new THREE.Color('#80D0F0'),         // pale cyan ring
   ringIntensity: 1.5,                            // HDR
 } as const
 
 // Cloud layers — billboard cards with procedural shapes
 export const CLOUDS = {
-  // Back layer — behind planet, atmospheric perspective
+  // Back layer — behind planet, atmospheric perspective (hazy, blue-tinted)
   back: {
-    count: 7,
-    distanceRange: [600, 800] as [number, number],
-    scaleRange: [40, 80] as [number, number],
-    elevationRange: [0.05, 0.25] as [number, number],  // radians above horizon
-    tint: new THREE.Color('#6090C0'),                    // blue haze
-    opacity: 0.6,
+    count: 5,
+    distanceRange: [500, 700] as [number, number],
+    scaleRange: [25, 50] as [number, number],
+    elevationRange: [0.02, 0.10] as [number, number],  // low elevation — well below planet arc
+    azimuthSpread: Math.PI * 0.18,                       // ±32° narrow — avoid planet sides
+    tint: new THREE.Color('#8AB0D0'),                    // soft blue haze
+    opacity: 0.35,
   },
-  // Front layer — in front of planet, vivid and detailed
+  // Front layer — in front of planet, vivid cumulus (scattered, gaps show sky)
   front: {
     count: 10,
-    distanceRange: [300, 500] as [number, number],
-    scaleRange: [60, 150] as [number, number],
-    elevationRange: [0.04, 0.35] as [number, number],
+    distanceRange: [350, 500] as [number, number],
+    scaleRange: [35, 70] as [number, number],
+    elevationRange: [0.02, 0.16] as [number, number],  // kept below planet body
+    azimuthSpread: Math.PI * 0.3,                        // ±54° wide — fill the view
     tint: new THREE.Color('#FFFFFF'),                    // pure white
-    opacity: 0.9,
+    opacity: 0.85,
   },
   driftSpeed: 0.02,   // very slow horizontal drift
 } as const
