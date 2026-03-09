@@ -71,7 +71,7 @@ const bodyFragmentShader = /* glsl */ `
     // Atmosphere rim glow — emissive at the very edge of the body silhouette
     // This replaces the separate atmosphere sphere — glow is ONLY on the body edge
     float rimFresnel = 1.0 - fresnel;
-    float rimGlow = pow(rimFresnel, 12.0) * uAtmosphereIntensity;
+    float rimGlow = pow(rimFresnel, 8.0) * uAtmosphereIntensity;
     vec3 atmosphereGlow = uAtmosphereColor * rimGlow;
 
     // Blend: body transitions to bright atmosphere glow at the rim

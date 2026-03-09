@@ -39,7 +39,7 @@ export const PLANET = {
   radius: 800,
   bodyColor: new THREE.Color('#1A4060'),        // dark teal (from keyframes)
   atmosphereColor: new THREE.Color('#50D0F0'),  // bright cyan rim
-  atmosphereIntensity: 0.5,                      // rim glow — power 12 Fresnel, below bloom threshold
+  atmosphereIntensity: 0.7,                      // rim glow — power 8 Fresnel, slight bloom at peak
   atmosphereScale: 1.025,                        // very tight to body — thin rim
   ringColor: new THREE.Color('#80D0F0'),         // pale cyan ring
   ringIntensity: 1.5,                            // HDR
@@ -49,21 +49,21 @@ export const PLANET = {
 export const CLOUDS = {
   // Back layer — behind planet, atmospheric perspective (hazy, blue-tinted)
   back: {
-    count: 5,
-    distanceRange: [500, 700] as [number, number],
-    scaleRange: [25, 50] as [number, number],
-    elevationRange: [0.02, 0.10] as [number, number],  // low elevation — well below planet arc
-    azimuthSpread: Math.PI * 0.18,                       // ±32° narrow — avoid planet sides
+    count: 8,
+    distanceRange: [480, 700] as [number, number],
+    scaleRange: [30, 65] as [number, number],
+    elevationRange: [0.02, 0.14] as [number, number],  // slightly higher to fill more sky
+    azimuthSpread: Math.PI * 0.22,                       // ±40° — wider but still centered
     tint: new THREE.Color('#8AB0D0'),                    // soft blue haze
-    opacity: 0.35,
+    opacity: 0.4,
   },
-  // Front layer — in front of planet, vivid cumulus (scattered, gaps show sky)
+  // Front layer — in front of planet, vivid cumulus (dense, overlapping formations)
   front: {
-    count: 10,
-    distanceRange: [350, 500] as [number, number],
-    scaleRange: [35, 70] as [number, number],
-    elevationRange: [0.02, 0.16] as [number, number],  // kept below planet body
-    azimuthSpread: Math.PI * 0.3,                        // ±54° wide — fill the view
+    count: 18,
+    distanceRange: [300, 500] as [number, number],
+    scaleRange: [40, 90] as [number, number],
+    elevationRange: [0.01, 0.18] as [number, number],  // wider range, some near horizon
+    azimuthSpread: Math.PI * 0.35,                       // ±63° — fill wide view
     tint: new THREE.Color('#FFFFFF'),                    // pure white
     opacity: 0.85,
   },
