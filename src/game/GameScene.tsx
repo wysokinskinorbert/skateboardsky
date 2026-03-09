@@ -4,6 +4,7 @@ import { CloudLayer } from '../sky/CloudLayer'
 import { Planet } from '../sky/Planet'
 import { Road } from '../world/Road'
 import { Terrain } from '../world/Terrain'
+import { HorizonStack } from '../world/HorizonStack'
 import { CameraSetup } from './CameraSetup'
 import { PostProcessingStack } from '../postprocessing/PostProcessingStack'
 import { CAMERA, COLOR_GRADING } from './constants'
@@ -34,6 +35,7 @@ export function GameScene() {
       <CloudLayer layer="back" />
       <Planet />
       <CloudLayer layer="front" />
+      <HorizonStack />
       <Terrain />
       <Road />
       <PostProcessingStack />
