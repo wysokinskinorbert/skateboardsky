@@ -8,6 +8,7 @@ import {
 } from '@react-three/postprocessing'
 import { ToneMappingMode, BlendFunction } from 'postprocessing'
 import { COLOR_GRADING } from '../game/constants'
+import { LensFlare } from './LensFlare'
 
 /**
  * Post-processing stack matching the film's cinematic Shinkai look:
@@ -26,6 +27,7 @@ export function PostProcessingStack() {
         luminanceSmoothing={COLOR_GRADING.bloomSmoothing}
         mipmapBlur
       />
+      <LensFlare />
       <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
       <BrightnessContrast
         brightness={0.02}

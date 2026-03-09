@@ -141,6 +141,7 @@ function CloudCard({
   renderOrder,
 }: CloudCardProps) {
   const meshRef = useRef<THREE.Mesh>(null)
+  const basePosition = useMemo(() => position.clone(), [position])
 
   const uniforms = useMemo(
     () =>
@@ -154,10 +155,20 @@ function CloudCard({
     [seed, tint, opacity, sunDirection, backlightStrength]
   )
 
-  // Billboard: always face the camera
-  useFrame(({ camera }) => {
+  // Billboard + gentle wind drift
+  useFrame(({ camera, clock }) => {
     if (meshRef.current) {
       meshRef.current.quaternion.copy(camera.quaternion)
+
+      // Slow sinusoidal drift — unique phase per cloud
+      const t = clock.getElapsedTime()
+      const driftX = Math.sin(t * CLOUDS.driftSpeed + seed * 2.47) * scale * 0.3
+      const driftY = Math.sin(t * CLOUDS.driftSpeed * 0.7 + seed * 1.13) * scale * 0.08
+      meshRef.current.position.set(
+        basePosition.x + driftX,
+        basePosition.y + driftY,
+        basePosition.z,
+      )
     }
   })
 
