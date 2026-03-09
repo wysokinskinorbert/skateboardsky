@@ -70,11 +70,28 @@ export const CLOUDS = {
   driftSpeed: 0.02,   // very slow horizontal drift
 } as const
 
-// Camera defaults — low angle looking up to show ~70% sky like the film
+// Road — serpentine mountain road going downhill
+export const ROAD = {
+  width: 10,
+  segments: 200,
+  // Spline control points: [x, y, z] — serpentine S-curves descending
+  splinePoints: [
+    [0, 28, 5],          // start — under camera
+    [0, 27, -10],        // straight lead-in
+    [-18, 22, -50],      // first curve left
+    [22, 16, -100],      // switchback right
+    [-28, 9, -160],      // curve left
+    [18, 2, -220],       // switchback right
+    [-12, -5, -290],     // curve left into valley
+    [0, -10, -350],      // end — disappears into distance
+  ] as [number, number, number][],
+} as const
+
+// Camera defaults — behind character on mountain road, ~55% sky / ~45% ground
 export const CAMERA = {
-  fov: 65,
+  fov: 72,
   near: 0.1,
   far: 2000,
-  position: [0, 2, 0] as [number, number, number],
-  lookAt: [0, 15, -40] as [number, number, number],
+  position: [0, 33, 8] as [number, number, number],
+  lookAt: [0, 24, -25] as [number, number, number],
 } as const
