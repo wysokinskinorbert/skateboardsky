@@ -9,6 +9,7 @@ import {
 import { ToneMappingMode, BlendFunction } from 'postprocessing'
 import { COLOR_GRADING } from '../game/constants'
 import { LensFlare } from './LensFlare'
+import { AtmosphericHaze } from './AtmosphericHaze'
 
 /**
  * Post-processing stack matching the film's cinematic Shinkai look:
@@ -28,6 +29,7 @@ export function PostProcessingStack() {
         mipmapBlur
       />
       <LensFlare />
+      <AtmosphericHaze />
       <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
       <BrightnessContrast
         brightness={0.02}
