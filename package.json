@@ -1,0 +1,39 @@
+{
+  "name": "skateboardsky",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Anime skateboard downhill game - Three.js WebGPU + React Three Fiber",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wysokinskinorbert/skateboardsky.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/wysokinskinorbert/skateboardsky/issues"
+  },
+  "homepage": "https://github.com/wysokinskinorbert/skateboardsky#readme",
+  "dependencies": {
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.5.0",
+    "@react-three/postprocessing": "^3.0.4",
+    "@takram/three-atmosphere": "^0.17.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@types/three": "^0.183.1",
+    "@vitejs/plugin-react": "^5.1.4",
+    "postprocessing": "^6.38.3",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "three": "^0.183.2",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.1"
+  }
+}
