@@ -33,6 +33,41 @@ export const SUN = {
   distance: 450,           // placed on sky dome sphere
 } as const
 
+// Planet — giant arc in upper sky, only lower ~25% visible (rest above frame)
+export const PLANET = {
+  position: [50, 1200, -900] as [number, number, number],
+  radius: 800,
+  bodyColor: new THREE.Color('#1A4060'),        // dark teal (from keyframes)
+  atmosphereColor: new THREE.Color('#50D0F0'),  // bright cyan rim
+  atmosphereIntensity: 1.5,                      // HDR for bloom (softer)
+  atmosphereScale: 1.04,                         // tighter to body
+  ringColor: new THREE.Color('#80D0F0'),         // pale cyan ring
+  ringIntensity: 1.5,                            // HDR
+} as const
+
+// Cloud layers — billboard cards with procedural shapes
+export const CLOUDS = {
+  // Back layer — behind planet, atmospheric perspective
+  back: {
+    count: 7,
+    distanceRange: [600, 800] as [number, number],
+    scaleRange: [40, 80] as [number, number],
+    elevationRange: [0.05, 0.25] as [number, number],  // radians above horizon
+    tint: new THREE.Color('#6090C0'),                    // blue haze
+    opacity: 0.6,
+  },
+  // Front layer — in front of planet, vivid and detailed
+  front: {
+    count: 10,
+    distanceRange: [300, 500] as [number, number],
+    scaleRange: [60, 150] as [number, number],
+    elevationRange: [0.04, 0.35] as [number, number],
+    tint: new THREE.Color('#FFFFFF'),                    // pure white
+    opacity: 0.9,
+  },
+  driftSpeed: 0.02,   // very slow horizontal drift
+} as const
+
 // Camera defaults — low angle looking up to show ~70% sky like the film
 export const CAMERA = {
   fov: 65,

@@ -1,5 +1,6 @@
 import { Canvas } from '@react-three/fiber'
 import { SkyDome } from '../sky/SkyDome'
+import { Planet } from '../sky/Planet'
 import { CameraSetup } from './CameraSetup'
 import { PostProcessingStack } from '../postprocessing/PostProcessingStack'
 import { CAMERA, COLOR_GRADING } from './constants'
@@ -24,6 +25,8 @@ export function GameScene() {
     >
       <CameraSetup />
       <SkyDome />
+      {/* Phase 2: render order — back clouds (1) → planet (2) → front clouds (3) */}
+      <Planet />
       <PostProcessingStack />
 
       {/* Ambient fill light — cool blue like Shinkai shadows */}
