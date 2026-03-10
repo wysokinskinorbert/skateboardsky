@@ -15,10 +15,10 @@ export const COLOR_GRADING = {
   toneMappingExposure: 1.0,
 
   // Bloom — HDR emission on sun disc triggers this
-  bloomIntensity: 1.2,
-  bloomThreshold: 0.6,
+  bloomIntensity: 0.8,
+  bloomThreshold: 1.5,
   bloomSmoothing: 0.4,
-  bloomRadius: 0.7,
+  bloomRadius: 0.6,
 
   // Split toning: cool shadows + warm highlights (Shinkai signature)
   shadowColor: new THREE.Color('#2A4080'),   // cool blue shadows
@@ -35,13 +35,13 @@ export const SUN = {
 
 // Planet — giant arc in upper sky, only lower ~25% visible (rest above frame)
 export const PLANET = {
-  position: [50, 1200, -900] as [number, number, number],
-  radius: 800,
+  position: [30, 650, -850] as [number, number, number],
+  radius: 700,
   bodyColor: new THREE.Color('#1A4060'),        // dark teal (from keyframes)
-  atmosphereColor: new THREE.Color('#50D0F0'),  // bright cyan rim
-  atmosphereIntensity: 0.7,                      // rim glow — power 8 Fresnel, slight bloom at peak
+  atmosphereColor: new THREE.Color('#70D8FF'),  // vivid cyan
+  atmosphereIntensity: 1.8,                      // bright rim — bloom threshold 1.5 prevents blowout
   atmosphereScale: 1.025,                        // very tight to body — thin rim
-  ringColor: new THREE.Color('#80D0F0'),         // pale cyan ring
+  ringColor: new THREE.Color('#90E0FF'),         // pale cyan ring
   ringIntensity: 1.5,                            // HDR
 } as const
 
@@ -49,25 +49,25 @@ export const PLANET = {
 export const CLOUDS = {
   // Back layer — behind planet, atmospheric perspective (hazy, blue-tinted)
   back: {
-    count: 8,
-    distanceRange: [480, 700] as [number, number],
-    scaleRange: [30, 65] as [number, number],
-    elevationRange: [0.02, 0.14] as [number, number],  // slightly higher to fill more sky
-    azimuthSpread: Math.PI * 0.22,                       // ±40° — wider but still centered
-    tint: new THREE.Color('#8AB0D0'),                    // soft blue haze
-    opacity: 0.4,
+    count: 16,
+    distanceRange: [500, 750] as [number, number],
+    scaleRange: [50, 120] as [number, number],
+    elevationRange: [0.04, 0.25] as [number, number],
+    azimuthSpread: Math.PI * 0.35,
+    tint: new THREE.Color('#C0D8F0'),                    // brighter blue-white
+    opacity: 0.5,
   },
-  // Front layer — in front of planet, vivid cumulus (dense, overlapping formations)
+  // Front layer — vivid cumulus, some MASSIVE hero clouds
   front: {
-    count: 18,
-    distanceRange: [300, 500] as [number, number],
-    scaleRange: [40, 90] as [number, number],
-    elevationRange: [0.01, 0.18] as [number, number],  // wider range, some near horizon
-    azimuthSpread: Math.PI * 0.35,                       // ±63° — fill wide view
+    count: 35,
+    distanceRange: [200, 550] as [number, number],
+    scaleRange: [60, 220] as [number, number],          // hero clouds up to 220 units!
+    elevationRange: [-0.03, 0.30] as [number, number],  // from below horizon to high
+    azimuthSpread: Math.PI * 0.45,                       // ±81° wide spread
     tint: new THREE.Color('#FFFFFF'),                    // pure white
-    opacity: 0.85,
+    opacity: 0.92,
   },
-  driftSpeed: 0.02,   // very slow horizontal drift
+  driftSpeed: 0.02,
 } as const
 
 // Road — serpentine mountain road going downhill

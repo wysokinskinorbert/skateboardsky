@@ -64,10 +64,10 @@ const fragmentShader = /* glsl */ `
     float lowSkyMask = 1.0 - smoothstep(0.05, 0.35, t); // only below ~35% elevation
     sky = mix(sky, mix(sky, uHorizonColor, 0.3), sunProximity * lowSkyMask);
 
-    // Sun glow — tight disc + soft halo (Mie-like forward scatter)
-    float sunDisc = pow(max(sunDot, 0.0), 512.0) * uSunIntensity * 3.0;  // sharp bright disc
-    float sunGlow = pow(max(sunDot, 0.0), 96.0) * uSunIntensity * 0.25;  // tight glow
-    float sunHalo = pow(max(sunDot, 0.0), 12.0) * 0.06;                   // subtle wide halo
+    // Sun glow — tight disc + compact halo
+    float sunDisc = pow(max(sunDot, 0.0), 512.0) * uSunIntensity * 2.0;  // sharp bright disc
+    float sunGlow = pow(max(sunDot, 0.0), 128.0) * uSunIntensity * 0.2;  // tighter glow
+    float sunHalo = pow(max(sunDot, 0.0), 20.0) * 0.04;                   // subtle halo
 
     sky += uSunColor * (sunDisc + sunGlow + sunHalo);
 
@@ -82,14 +82,14 @@ const fragmentShader = /* glsl */ `
 
 export function createShinkaiSkyUniforms(sunDirection: THREE.Vector3) {
   return {
-    uZenithColor:  { value: new THREE.Color('#0F1B45') },  // deep indigo
-    uUpperColor:   { value: new THREE.Color('#1E3A80') },  // rich blue
-    uMidColor:     { value: new THREE.Color('#4080B8') },  // bright blue
-    uHorizonColor: { value: new THREE.Color('#C08850') },  // warm amber
+    uZenithColor:  { value: new THREE.Color('#061035') },  // near-black indigo (film zenith)
+    uUpperColor:   { value: new THREE.Color('#102578') },  // deep royal blue
+    uMidColor:     { value: new THREE.Color('#2860A8') },  // rich saturated blue
+    uHorizonColor: { value: new THREE.Color('#C07838') },  // rich warm amber
     uHazeColor:    { value: new THREE.Color('#F0D8B0') },  // pale gold haze
     uSunColor:     { value: new THREE.Color('#FFF8E0') },  // warm white
     uSunDirection: { value: sunDirection.clone().normalize() },
-    uSunIntensity: { value: 3.0 },                         // HDR for bloom
+    uSunIntensity: { value: 2.0 },                         // HDR for bloom (controlled)
   }
 }
 

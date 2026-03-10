@@ -1,23 +1,23 @@
 import {
   EffectComposer,
   Bloom,
-  BrightnessContrast,
-  HueSaturation,
-  Vignette,
   ToneMapping,
 } from '@react-three/postprocessing'
-import { ToneMappingMode, BlendFunction } from 'postprocessing'
+import { ToneMappingMode } from 'postprocessing'
+import * as THREE from 'three'
 import { COLOR_GRADING } from '../game/constants'
 import { LensFlare } from './LensFlare'
 import { AtmosphericHaze } from './AtmosphericHaze'
+import { ColorGrading } from './ColorGrading'
 
 /**
  * Post-processing stack matching the film's cinematic Shinkai look:
  * 1. Bloom — HDR sun disc emission creates glow
- * 2. ToneMapping — ACES filmic for cinematic roll-off
- * 3. BrightnessContrast — slightly elevated contrast
- * 4. HueSaturation — vivid saturated colors (Shinkai signature)
- * 5. Vignette — subtle darkening at edges
+ * 2. LensFlare — anamorphic streak from sun
+ * 3. AtmosphericHaze — depth-based fog
+ * 4. ToneMapping — ACES filmic for cinematic roll-off
+ * 5. ColorGrading — combined brightness/contrast/saturation/vignette
+ *    (single custom effect to avoid multi-effect alpha compositing bugs)
  */
 export function PostProcessingStack() {
   return (
@@ -31,19 +31,12 @@ export function PostProcessingStack() {
       <LensFlare />
       <AtmosphericHaze />
       <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
-      <BrightnessContrast
-        brightness={0.02}
-        contrast={0.15}
-      />
-      <HueSaturation
-        blendFunction={BlendFunction.NORMAL}
-        hue={0}
-        saturation={0.3}
-      />
-      <Vignette
-        offset={0.3}
-        darkness={0.35}
-        blendFunction={BlendFunction.NORMAL}
+      <ColorGrading
+        brightness={0.03}
+        contrast={0.22}
+        saturation={0.4}
+        vignetteOffset={0.25}
+        vignetteDarkness={0.4}
       />
     </EffectComposer>
   )

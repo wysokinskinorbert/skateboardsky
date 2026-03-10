@@ -98,7 +98,7 @@ export function CloudLayer({ layer }: CloudLayerProps) {
     [config]
   )
 
-  const backlightStrength = layer === 'front' ? 0.6 : 0.3
+  const backlightStrength = layer === 'front' ? 1.2 : 0.5
 
   return (
     <group>

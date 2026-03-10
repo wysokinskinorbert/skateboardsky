@@ -68,14 +68,26 @@ const bodyFragmentShader = /* glsl */ `
 
     vec3 bodyColor = uBodyColor * (1.0 + surfaceNoise) * diffuse * limbDarkening;
 
-    // Atmosphere rim glow — emissive at the very edge of the body silhouette
-    // This replaces the separate atmosphere sphere — glow is ONLY on the body edge
+    // Atmosphere rim glow — very bright emissive at body edge (Shinkai-style)
     float rimFresnel = 1.0 - fresnel;
-    float rimGlow = pow(rimFresnel, 8.0) * uAtmosphereIntensity;
+
+    // Thin bright atmosphere rim — distinct line, stays below bloom threshold
+    float rimGlow = pow(rimFresnel, 5.0) * uAtmosphereIntensity * 0.7;
     vec3 atmosphereGlow = uAtmosphereColor * rimGlow;
 
+    // Very subtle wider scatter — gives a hint of atmosphere depth
+    float softGlow = pow(rimFresnel, 2.5) * uAtmosphereIntensity * 0.08;
+    vec3 softAtmosphere = uAtmosphereColor * softGlow;
+
+    // Ultra-thin HDR edge for bloom halo
+    float bloomRim = pow(rimFresnel, 14.0) * uAtmosphereIntensity * 1.2;
+    vec3 bloomGlow = uAtmosphereColor * bloomRim;
+
     // Blend: body transitions to bright atmosphere glow at the rim
-    vec3 color = bodyColor + atmosphereGlow;
+    vec3 color = bodyColor + atmosphereGlow + softAtmosphere + bloomGlow;
+
+    // Clip planet below terrain level — prevents bleed through terrain gaps
+    if (vWorldPosition.y < 0.0) discard;
 
     gl_FragColor = vec4(color, 1.0);
   }
@@ -87,7 +99,7 @@ export function createPlanetBodyUniforms(
   atmosphereIntensity: number,
 ) {
   return {
-    uBodyColor: { value: new THREE.Color('#1A4060') },
+    uBodyColor: { value: new THREE.Color('#122840') },
     uSunDirection: { value: sunDirection.clone().normalize() },
     uAtmosphereColor: { value: atmosphereColor.clone() },
     uAtmosphereIntensity: { value: atmosphereIntensity },

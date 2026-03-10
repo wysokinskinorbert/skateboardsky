@@ -22,24 +22,30 @@ export function HorizonStack() {
       {/* Ocean/bay — flat water surface far below in the valley */}
       <OceanPlane />
 
-      {/* Mountain ridges — distant hazy silhouettes */}
+      {/* Mountain ridges — distant silhouettes with atmospheric haze */}
       <MountainRidge
-        position={[-150, -8, -500]}
-        scale={[600, 60, 1]}
-        color="#4A6A80"
-        hazeAmount={0.6}
+        position={[-100, -25, -500]}
+        scale={[700, 65, 1]}
+        color="#3A5A70"
+        hazeAmount={0.4}
       />
       <MountainRidge
-        position={[100, -5, -600]}
-        scale={[500, 45, 1]}
-        color="#5A7A90"
-        hazeAmount={0.75}
+        position={[90, -22, -570]}
+        scale={[600, 50, 1]}
+        color="#4A6A82"
+        hazeAmount={0.55}
+      />
+      <MountainRidge
+        position={[-30, -28, -650]}
+        scale={[800, 45, 1]}
+        color="#5878A0"
+        hazeAmount={0.7}
       />
 
-      {/* City in the valley — silhouette card */}
+      {/* City in the valley — very distant, heavily hazed silhouette */}
       <CitySilhouette
-        position={[-30, -22, -350]}
-        scale={[250, 30, 1]}
+        position={[-20, -38, -420]}
+        scale={[500, 30, 1]}
         sunDirection={sunDirection}
       />
     </group>
@@ -57,11 +63,11 @@ function OceanPlane() {
 
   return (
     <mesh
-      position={[0, -35, -400]}
+      position={[0, -42, -400]}
       rotation={[-Math.PI / 2, 0, 0]}
       renderOrder={4}
     >
-      <planeGeometry args={[800, 500, 1, 1]} />
+      <planeGeometry args={[1400, 900, 1, 1]} />
       <shaderMaterial
         vertexShader={oceanVertexShader}
         fragmentShader={oceanFragmentShader}
@@ -247,30 +253,34 @@ const cityFragmentShader = /* glsl */ `
   }
 
   void main() {
-    // Procedural city skyline — columns of varying height
-    float col = floor(vUv.x * 60.0);
-    float buildingHeight = hash(col * 1.37) * 0.5 + 0.1;
+    // Procedural city skyline — many thin columns of varying height
+    float col = floor(vUv.x * 80.0);
+    float buildingHeight = hash(col * 1.37) * 0.35 + 0.05;
 
-    // Variation: some buildings taller, some shorter
-    float tallBuilding = step(0.7, hash(col * 2.71)) * 0.3;
+    // Variation: occasional tall buildings (landmarks/towers)
+    float tallBuilding = step(0.8, hash(col * 2.71)) * 0.25;
     buildingHeight += tallBuilding;
 
-    // Windows — small bright dots
-    float windowX = fract(vUv.x * 60.0);
-    float windowY = fract(vUv.y * 30.0);
-    float windowMask = step(0.3, windowX) * step(windowX, 0.7)
-                     * step(0.3, windowY) * step(windowY, 0.7);
-    float windowBrightness = windowMask * step(0.5, hash(col * 3.14 + floor(vUv.y * 30.0))) * 0.15;
+    // Clusters: buildings group together with gaps between clusters
+    float cluster = smoothstep(0.3, 0.5, hash(floor(col / 5.0) * 7.77));
+    buildingHeight *= cluster;
+
+    // Windows — subtle tiny dots
+    float windowX = fract(vUv.x * 80.0);
+    float windowY = fract(vUv.y * 40.0);
+    float windowMask = step(0.35, windowX) * step(windowX, 0.65)
+                     * step(0.35, windowY) * step(windowY, 0.65);
+    float windowBrightness = windowMask * step(0.6, hash(col * 3.14 + floor(vUv.y * 40.0))) * 0.08;
 
     // Alpha: below building top = solid, above = transparent
-    float alpha = smoothstep(buildingHeight + 0.01, buildingHeight - 0.01, vUv.y);
+    float alpha = smoothstep(buildingHeight + 0.02, buildingHeight - 0.02, vUv.y);
 
-    // Fade out at horizontal edges
-    float edgeFade = smoothstep(0.0, 0.1, vUv.x) * smoothstep(1.0, 0.9, vUv.x);
+    // Wide fade out at edges — city blends smoothly into surroundings
+    float edgeFade = smoothstep(0.0, 0.2, vUv.x) * smoothstep(1.0, 0.8, vUv.x);
     alpha *= edgeFade;
 
-    // Color: buildings + atmospheric haze (city is distant, quite hazy)
-    vec3 color = mix(uBuildingColor, uHazeColor, 0.5);
+    // Atmospheric perspective — city is very distant, heavily hazed
+    vec3 color = mix(uBuildingColor, uHazeColor, 0.55);
     color += windowBrightness;
 
     gl_FragColor = vec4(color, alpha);

@@ -19,9 +19,9 @@ const fragment = /* glsl */ `
     vec2 delta = uv - sunPos;
 
     // === Anamorphic streak (horizontal) ===
-    // Tight vertical gaussian, wide horizontal — classic anamorphic look
-    float streakY = exp(-delta.y * delta.y * 8000.0);
-    float streakX = exp(-delta.x * delta.x * 3.0);
+    // Tight vertical gaussian, very wide horizontal — dramatic anamorphic
+    float streakY = exp(-delta.y * delta.y * 12000.0);
+    float streakX = exp(-delta.x * delta.x * 1.8);
     float streak = streakY * streakX;
 
     // Color: warm gold at center → cool blue at horizontal edges
@@ -58,8 +58,8 @@ const fragment = /* glsl */ `
     }
 
     // === Combine ===
-    vec3 flare = streakColor * streak * 0.35
-               + vec3(1.0, 0.95, 0.85) * halo
+    vec3 flare = streakColor * streak * 0.5
+               + vec3(1.0, 0.95, 0.85) * halo * 1.3
                + ghostSum;
     flare *= uIntensity;
 

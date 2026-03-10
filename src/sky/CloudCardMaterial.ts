@@ -63,49 +63,60 @@ const fragmentShader = /* glsl */ `
     vec2 uv = vUv * 2.0 - 1.0;
 
     // Elliptical distance — wider than tall (cumulus proportion)
-    float dist = length(vec2(uv.x * 0.8, uv.y * 1.1));
+    float dist = length(vec2(uv.x * 0.85, uv.y * 1.15));
 
-    // Cloud shape: FBM noise offset by seed for uniqueness
-    vec2 noiseCoord = uv * 3.0 + vec2(uSeed * 13.37, uSeed * 7.42);
+    // Domain warping — distort UV for organic irregular shapes
+    vec2 warpOffset = vec2(
+      fbm(uv * 1.2 + vec2(uSeed * 5.55, uSeed * 1.23)),
+      fbm(uv * 1.2 + vec2(uSeed * 2.33, uSeed * 8.91))
+    ) * 0.5;
+
+    // Cloud shape: FBM noise with warped coordinates
+    vec2 noiseCoord = (uv + warpOffset) * 2.5 + vec2(uSeed * 13.37, uSeed * 7.42);
     float cloudNoise = fbm(noiseCoord);
 
-    // Second noise layer at different scale for macro silhouette variation
-    float macroNoise = fbm(uv * 1.0 + vec2(uSeed * 3.14, uSeed * 2.72));
+    // Second noise at different scale for big lump variation
+    float macroNoise = fbm(uv * 0.7 + warpOffset + vec2(uSeed * 3.14, uSeed * 2.72));
 
-    // Third noise — large-scale warp for unique silhouette per cloud
-    float warpNoise = fbm(uv * 0.6 + vec2(uSeed * 5.55, uSeed * 1.23));
+    // Cumulus shape: strong radial falloff so edges go to zero
+    float shape = (1.0 - dist * 1.8);                   // aggressive falloff — truly round
+    shape += (cloudNoise - 0.5) * 0.8;                 // strong noise — bumpy organic edges
+    shape += (macroNoise - 0.5) * 0.5;                 // big lumps
+    shape += smoothstep(-0.3, 0.5, uv.y) * 0.25;      // taller top (cumulus dome)
+    shape -= smoothstep(0.0, 0.3, -uv.y) * 0.2;       // flatter bottom
 
-    // Cumulus shape: noise-driven organic silhouette
-    float shape = (1.0 - dist * 1.1);                   // gentle radial envelope
-    shape += (cloudNoise - 0.5) * 0.65;                // strong fine noise — bumpy edges
-    shape += (macroNoise - 0.5) * 0.35;                // macro shape — big lumps
-    shape += (warpNoise - 0.5) * 0.15;                 // warp — unique silhouette
-    shape += smoothstep(-0.4, 0.6, uv.y) * 0.15;      // slightly taller top
-    shape -= smoothstep(0.0, 0.5, -uv.y) * 0.08;      // very gentle flat bottom hint
-
-    // Alpha: wide soft edge for puffy, painterly look
-    float alpha = smoothstep(-0.02, 0.45, shape);
+    // Alpha: soft puffy edge
+    float alpha = smoothstep(-0.08, 0.3, shape);
     alpha *= uOpacity;
 
-    // Base cloud color — bright white/grey
+    // Base cloud color — bright white
     vec3 color = uTint;
 
-    // Self-shadowing: darker at bottom, brighter at top (Shinkai-style)
-    float heightGradient = smoothstep(-0.6, 0.7, uv.y);
-    color *= 0.65 + 0.35 * heightGradient;
+    // Shinkai-style shading: bright white top, subtle cool shadow at bottom
+    float heightGradient = smoothstep(-0.4, 0.5, uv.y);
+    vec3 shadowTint = vec3(0.80, 0.82, 0.92); // very subtle cool shadow
+    vec3 litTint = vec3(1.0, 1.0, 1.0);       // pure white
+    color *= mix(shadowTint, litTint, heightGradient);
 
-    // Inner volumetric shadow — darker where noise is lower
-    float innerShadow = smoothstep(0.3, 0.7, cloudNoise);
-    color *= 0.85 + 0.15 * innerShadow;
+    // Inner volumetric detail — very subtle
+    float innerDetail = smoothstep(0.3, 0.7, cloudNoise);
+    color *= 0.94 + 0.06 * innerDetail;
 
-    // Sun backlighting — warm golden edge on sun-facing side
+    // Sun backlighting — STRONG warm golden edges (Shinkai signature)
     vec3 cloudDir = normalize(vWorldPosition);
     float sunDot = max(dot(cloudDir, normalize(uSunDirection)), 0.0);
-    float backlight = pow(sunDot, 3.0) * uBacklightStrength;
+    float backlight = pow(sunDot, 2.0) * uBacklightStrength;
 
-    // Backlight affects edges more (where alpha is partially transparent)
-    float edgeMask = smoothstep(0.15, 0.0, shape - 0.05);
-    color += uSunColor * backlight * (0.4 + edgeMask * 0.6);
+    // Translucent rim glow — bright golden edges where light passes through
+    float edgeMask = smoothstep(0.25, -0.1, shape);
+    color += uSunColor * backlight * (0.6 + edgeMask * 1.2);
+
+    // Top highlight from sun
+    float topHighlight = smoothstep(0.0, 0.5, uv.y) * pow(sunDot, 1.2) * 0.2;
+    color += topHighlight;
+
+    // Slight warm tint on sun-facing clouds
+    color += vec3(0.08, 0.04, 0.0) * backlight * 0.5;
 
     // Discard fully transparent pixels
     if (alpha < 0.01) discard;

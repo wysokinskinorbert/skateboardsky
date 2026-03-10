@@ -1,4 +1,5 @@
-import { Canvas } from '@react-three/fiber'
+import { Canvas, useThree } from '@react-three/fiber'
+import { useEffect } from 'react'
 import { SkyDome } from '../sky/SkyDome'
 import { CloudLayer } from '../sky/CloudLayer'
 import { Planet } from '../sky/Planet'
@@ -29,6 +30,7 @@ export function GameScene() {
       style={{ width: '100%', height: '100%' }}
     >
       <CameraSetup />
+      <RendererSetup />
       <color attach="background" args={['#000000']} />
       <SkyDome />
       {/* Phase 2: render order — back clouds (1) → planet (2) → front clouds (3) */}
@@ -44,4 +46,13 @@ export function GameScene() {
       <ambientLight intensity={0.3} color="#8090C0" />
     </Canvas>
   )
+}
+
+/** Ensure renderer clear alpha = 1 for EffectComposer render targets */
+function RendererSetup() {
+  const { gl } = useThree()
+  useEffect(() => {
+    gl.setClearColor(new THREE.Color('#000000'), 1)
+  }, [gl])
+  return null
 }

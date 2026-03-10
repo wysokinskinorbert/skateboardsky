@@ -25,16 +25,16 @@ const fragment = /* glsl */ `
     float far = cameraFar;
     float linearDepth = (near * far) / (far - depth * (far - near));
 
-    // Exponential haze — stronger at distance
+    // Exponential haze — gentle, only affects far objects
     float haze = 1.0 - exp(-(linearDepth - uOffset) * uDensity);
     haze = clamp(haze, 0.0, 1.0);
 
     // Haze color gradient: warm near horizon → cool blue at distance
-    float colorMix = smoothstep(100.0, 600.0, linearDepth);
+    float colorMix = smoothstep(150.0, 700.0, linearDepth);
     vec3 hazeColor = mix(uNearHazeColor, uFarHazeColor, colorMix);
 
-    // Blend scene with haze
-    vec3 color = mix(inputColor.rgb, hazeColor, haze * 0.6);
+    // Gentle blend — preserve scene colors, add subtle depth layering
+    vec3 color = mix(inputColor.rgb, hazeColor, haze * 0.35);
 
     outputColor = vec4(color, inputColor.a);
   }
@@ -46,10 +46,10 @@ class AtmosphericHazeEffect extends Effect {
       blendFunction: BlendFunction.NORMAL,
       attributes: EffectAttribute.DEPTH,
       uniforms: new Map<string, THREE.Uniform>([
-        ['uNearHazeColor', new THREE.Uniform(new THREE.Color('#D8C8A8'))],
-        ['uFarHazeColor', new THREE.Uniform(new THREE.Color('#90B0C8'))],
-        ['uDensity', new THREE.Uniform(0.004)],
-        ['uOffset', new THREE.Uniform(30.0)],
+        ['uNearHazeColor', new THREE.Uniform(new THREE.Color('#C0B898'))],
+        ['uFarHazeColor', new THREE.Uniform(new THREE.Color('#80A0C0'))],
+        ['uDensity', new THREE.Uniform(0.0015)],
+        ['uOffset', new THREE.Uniform(150.0)],
       ]),
     })
   }
