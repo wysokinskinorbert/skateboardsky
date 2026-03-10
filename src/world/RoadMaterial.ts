@@ -85,7 +85,7 @@ const roadFragmentShader = /* glsl */ `
 
 export function createRoadUniforms(sunDirection: THREE.Vector3) {
   return {
-    uAsphaltColor: { value: new THREE.Color('#727272') },
+    uAsphaltColor: { value: new THREE.Color('#808080') },
     uLineColor: { value: new THREE.Color('#E8C840') },
     uSunDirection: { value: sunDirection.clone().normalize() },
     uRoadLength: { value: 50.0 },

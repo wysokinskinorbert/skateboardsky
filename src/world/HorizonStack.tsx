@@ -51,6 +51,10 @@ export function HorizonStack() {
         scale={[400, 30, 1]}
         sunDirection={sunDirection}
       />
+
+      {/* Haze veil — warm atmospheric band at the horizon line.
+          Shinkai signature: golden/peach glow where sky meets ocean. */}
+      <HazeVeil />
     </group>
   )
 }
@@ -285,6 +289,64 @@ const cityFragmentShader = /* glsl */ `
     // Atmospheric perspective — city is very distant, heavily hazed
     vec3 color = mix(uBuildingColor, uHazeColor, 0.55);
     color += windowBrightness;
+
+    gl_FragColor = vec4(color, alpha);
+  }
+`
+
+// ─── Haze Veil ─────────────────────────────────
+
+function HazeVeil() {
+  const uniforms = useMemo(() => ({
+    uWarmColor: { value: new THREE.Color('#D0A068') },
+    uCoolColor: { value: new THREE.Color('#6888A8') },
+  }), [])
+
+  return (
+    <mesh
+      position={[0, -6, -520]}
+      renderOrder={4}
+    >
+      <planeGeometry args={[1400, 80, 1, 1]} />
+      <shaderMaterial
+        vertexShader={hazeVeilVertexShader}
+        fragmentShader={hazeVeilFragmentShader}
+        uniforms={uniforms}
+        transparent
+        side={THREE.DoubleSide}
+        depthWrite={false}
+      />
+    </mesh>
+  )
+}
+
+const hazeVeilVertexShader = /* glsl */ `
+  varying vec2 vUv;
+
+  void main() {
+    vUv = uv;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`
+
+const hazeVeilFragmentShader = /* glsl */ `
+  uniform vec3 uWarmColor;
+  uniform vec3 uCoolColor;
+
+  varying vec2 vUv;
+
+  void main() {
+    // Vertical gradient: warm at bottom (horizon line) → cool at top
+    float grad = smoothstep(0.0, 1.0, vUv.y);
+    vec3 color = mix(uWarmColor, uCoolColor, grad);
+
+    // Alpha: strongest at center, fading at top and bottom
+    float alpha = smoothstep(0.0, 0.3, vUv.y) * smoothstep(1.0, 0.4, vUv.y);
+    alpha *= 0.45; // warm atmospheric glow at horizon
+
+    // Horizontal fade at edges
+    float edgeFade = smoothstep(0.0, 0.15, vUv.x) * smoothstep(1.0, 0.85, vUv.x);
+    alpha *= edgeFade;
 
     gl_FragColor = vec4(color, alpha);
   }
