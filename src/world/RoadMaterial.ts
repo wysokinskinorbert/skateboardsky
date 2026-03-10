@@ -50,10 +50,16 @@ const roadFragmentShader = /* glsl */ `
   void main() {
     vec2 uv = vUv;
 
-    // Asphalt base with grain texture
-    float grain = noise(uv * vec2(50.0, uRoadLength * 2.0)) * 0.05;
-    float coarseGrain = noise(uv * vec2(15.0, uRoadLength * 0.5)) * 0.03;
-    vec3 asphalt = uAsphaltColor * (1.0 - grain - coarseGrain);
+    // Asphalt base with multi-scale texture (weathered look)
+    float grain = noise(uv * vec2(60.0, uRoadLength * 2.5)) * 0.06;
+    float coarseGrain = noise(uv * vec2(15.0, uRoadLength * 0.5)) * 0.04;
+    // Patches of wear — lighter/darker areas across the surface
+    float wearPatch = noise(uv * vec2(4.0, uRoadLength * 0.12)) * 0.08;
+    // Tire track darkening near center lanes
+    float centerProx = 1.0 - smoothstep(0.0, 0.25, abs(uv.x - 0.35));
+    centerProx += 1.0 - smoothstep(0.0, 0.25, abs(uv.x - 0.65));
+    float tireWear = centerProx * 0.03;
+    vec3 asphalt = uAsphaltColor * (1.0 - grain - coarseGrain - wearPatch - tireWear);
 
     // === Yellow center line (continuous) ===
     // Center of road is at uv.x = 0.5
@@ -79,8 +85,13 @@ const roadFragmentShader = /* glsl */ `
     color = mix(color, uLineColor * diffuse, centerLine);
     color = mix(color, vec3(0.9, 0.9, 0.9) * diffuse, edgeLine * 0.8);
 
-    // Distance fade — road dissolves into atmospheric haze like in the film
+    // Warm atmospheric haze on distant road sections
     float distFromCam = length(vWorldPosition - cameraPosition);
+    float roadHaze = smoothstep(60.0, 300.0, distFromCam);
+    vec3 hazeColor = vec3(0.50, 0.48, 0.42); // warm golden haze
+    color = mix(color, hazeColor, roadHaze * 0.5);
+
+    // Distance fade — road dissolves into atmospheric haze like in the film
     float roadAlpha = 1.0 - smoothstep(180.0, 350.0, distFromCam);
 
     gl_FragColor = vec4(color, roadAlpha);
@@ -89,7 +100,7 @@ const roadFragmentShader = /* glsl */ `
 
 export function createRoadUniforms(sunDirection: THREE.Vector3) {
   return {
-    uAsphaltColor: { value: new THREE.Color('#A8A8A8') },
+    uAsphaltColor: { value: new THREE.Color('#888888') },
     uLineColor: { value: new THREE.Color('#E8C840') },
     uSunDirection: { value: sunDirection.clone().normalize() },
     uRoadLength: { value: 50.0 },

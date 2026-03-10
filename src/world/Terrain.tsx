@@ -22,8 +22,8 @@ export function Terrain() {
 
   const uniforms = useMemo(() => ({
     uSunDirection: { value: sunDirection },
-    uGrassColor: { value: new THREE.Color('#40A835') },
-    uGrassDarkColor: { value: new THREE.Color('#2A7A22') },
+    uGrassColor: { value: new THREE.Color('#3C8835') },
+    uGrassDarkColor: { value: new THREE.Color('#246828') },
     uTime: { value: 0.0 },
   }), [sunDirection])
 
@@ -48,21 +48,21 @@ export function Terrain() {
       />
 
       {/* LEFT HILLSIDE — wide slope descending from road-left all the way to ocean level.
-          Width 80 + lowered center → bottom edge reaches y≈-18 (ocean level). */}
+          Width 95 covers more of the ocean gap. */}
       <TerrainPlane
         uniforms={uniforms}
-        position={[-42, 2, -50]}
+        position={[-45, 2, -55]}
         rotation={[-Math.PI / 2, 0, -slopeAngle]}
-        size={[80, 280]}
+        size={[95, 290]}
         fade="right"
       />
 
       {/* RIGHT HILLSIDE — wide slope descending from road-right to ocean level. */}
       <TerrainPlane
         uniforms={uniforms}
-        position={[42, 2, -50]}
+        position={[45, 2, -55]}
         rotation={[-Math.PI / 2, 0, slopeAngle]}
-        size={[80, 280]}
+        size={[95, 290]}
         fade="left"
       />
     </group>
@@ -113,7 +113,7 @@ const terrainFragmentShader = /* glsl */ `
     vec3 normal = normalize(vNormal);
     vec3 sunDir = normalize(uSunDirection);
 
-    float diffuse = max(dot(normal, sunDir), 0.0) * 0.5 + 0.5;
+    float diffuse = max(dot(normal, sunDir), 0.0) * 0.4 + 0.6;  // brighter ambient for near terrain
 
     vec2 worldUv = vWorldPosition.xz * 0.04;
     float n1 = noise(worldUv * 3.0);
@@ -134,15 +134,18 @@ const terrainFragmentShader = /* glsl */ `
     vec3 shadowColor = color * 0.65 * vec3(0.90, 0.95, 1.0);
     color = mix(shadowColor, color, shadowMask);
 
-    // Sun-facing slope variation — warmer sunlit areas
+    // Sun-facing slope variation — warmer sunlit areas (golden hour warmth)
     float sunFacing = max(dot(normal, sunDir), 0.0);
-    color += vec3(0.04, 0.02, 0.0) * sunFacing;
+    color += vec3(0.06, 0.03, 0.0) * sunFacing;
 
-    // Atmospheric perspective — distant terrain fades to cool blue haze
+    // Warm ambient — Shinkai's golden hour pervades everything
+    color += vec3(0.02, 0.01, 0.0);
+
+    // Atmospheric perspective — distant terrain fades to warm golden haze
     float distFromCam = length(vWorldPosition - cameraPosition);
-    float distHaze = smoothstep(80.0, 450.0, distFromCam);
-    vec3 terrainHaze = vec3(0.45, 0.58, 0.68);
-    color = mix(color, terrainHaze, distHaze * 0.5);
+    float distHaze = smoothstep(60.0, 350.0, distFromCam);
+    vec3 terrainHaze = vec3(0.52, 0.50, 0.45);  // warm golden haze, not cool blue
+    color = mix(color, terrainHaze, distHaze * 0.6);
 
     float alpha = 1.0;
     if (uFadeMode == 1) {

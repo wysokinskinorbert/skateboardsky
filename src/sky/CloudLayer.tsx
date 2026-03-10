@@ -86,17 +86,51 @@ export function CloudLayer({ layer }: CloudLayerProps) {
     return dir
   }, [])
 
-  const clouds = useMemo(
-    () =>
-      generateCloudInstances(
-        config.count,
-        config.distanceRange,
-        config.scaleRange,
-        config.elevationRange,
-        config.azimuthSpread,
-      ),
-    [config]
-  )
+  const clouds = useMemo(() => {
+    const generated = generateCloudInstances(
+      config.count,
+      config.distanceRange,
+      config.scaleRange,
+      config.elevationRange,
+      config.azimuthSpread,
+    )
+
+    // Film-accurate: 7 clouds in band at elevation 0°-13° above horizontal
+    // Camera at y=33. Hero clouds ~30% HFOV, medium ~15%, small ~8%
+    // Distances 380-470, scales calculated from angular size requirements
+    if (layer === 'front') {
+      const heroPositions: { pos: [number, number, number]; scale: number; seed: number }[] = [
+        // === HERO CLOUDS (2) — each ~30% of frame width ===
+        // Left hero cumulus — dominant, high in cloud band
+        { pos: [-160, 95, -450], scale: 200, seed: 100 },
+        // Right hero cumulus — near sun side, slightly smaller
+        { pos: [120, 100, -470], scale: 180, seed: 101 },
+
+        // === MEDIUM CLOUDS (3) — each ~12-18% of frame width ===
+        // Far left — filling left edge of cloud band
+        { pos: [-320, 78, -430], scale: 110, seed: 102 },
+        // Center gap-fill — between heroes
+        { pos: [-20, 82, -400], scale: 130, seed: 103 },
+        // Far right — balancing composition
+        { pos: [300, 72, -440], scale: 95, seed: 104 },
+
+        // === SMALL ACCENT CLOUDS (2) — wisps and fragments ===
+        // High accent — above left hero
+        { pos: [-80, 115, -460], scale: 55, seed: 105 },
+        // Low near horizon — partially behind landscape
+        { pos: [180, 50, -370], scale: 70, seed: 106 },
+      ]
+      for (const h of heroPositions) {
+        generated.push({
+          position: new THREE.Vector3(h.pos[0], h.pos[1], h.pos[2]),
+          scale: h.scale,
+          seed: h.seed,
+        })
+      }
+    }
+
+    return generated
+  }, [config, layer])
 
   const backlightStrength = layer === 'front' ? 1.2 : 0.5
   const driftMultiplier = layer === 'back' ? CLOUDS.backDriftMultiplier : CLOUDS.frontDriftMultiplier
@@ -187,10 +221,10 @@ function CloudCard({
     <mesh
       ref={meshRef}
       position={position}
-      scale={[scale, scale * 0.6, 1]}
+      scale={[scale * 1.1, scale * 0.65, 1]}
       renderOrder={renderOrder}
     >
-      <planeGeometry args={[1, 1]} />
+      <planeGeometry args={[1, 1, 1, 1]} />
       <shaderMaterial
         vertexShader={vertexShader}
         fragmentShader={fragmentShader}

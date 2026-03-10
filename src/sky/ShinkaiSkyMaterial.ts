@@ -1,16 +1,10 @@
 import * as THREE from 'three'
 
 /**
- * Custom sky shader material matching Makoto Shinkai's anime sky palette.
- * Uses elevation-based gradient with non-linear transitions and sun glow.
- *
- * Colors sampled directly from film keyframes:
- * - Zenith: deep indigo (#0F1B45)
- * - Mid: rich blue (#1E3A80)
- * - Lower: bright blue (#4080B8)
- * - Horizon: warm golden (#D09050)
- * - Haze: pale warm (#F0D8B0)
- * - Sun: HDR warm white (#FFFAE0) — triggers bloom
+ * Custom sky shader — film-accurate Makoto Shinkai gradient.
+ * Based on pixel analysis of keyframe_001 (FILM_PIXEL_ANALYSIS.md).
+ * Key: the sky is 85% deep blue, with a SUBTLE warm horizon zone.
+ * The warm zone is mostly hidden by terrain/landscape in the film.
  */
 
 const vertexShader = /* glsl */ `
@@ -27,8 +21,8 @@ const fragmentShader = /* glsl */ `
   uniform vec3 uZenithColor;
   uniform vec3 uUpperColor;
   uniform vec3 uMidColor;
-  uniform vec3 uHorizonColor;
-  uniform vec3 uHazeColor;
+  uniform vec3 uLowBlueColor;   // blue just above horizon (film: #4080C0)
+  uniform vec3 uHorizonColor;   // muted warm at horizon line
   uniform vec3 uSunColor;
   uniform vec3 uSunDirection;
   uniform float uSunIntensity;
@@ -36,44 +30,50 @@ const fragmentShader = /* glsl */ `
   varying vec3 vWorldPosition;
 
   void main() {
-    vec3 viewDir = normalize(vWorldPosition);
-    float elevation = viewDir.y; // -1 (nadir) to +1 (zenith)
-
-    // Remap: 0 at horizon, 1 at zenith (clamp below horizon)
+    vec3 viewDir = normalize(vWorldPosition - cameraPosition);
+    float elevation = viewDir.y;
     float t = clamp(elevation, 0.0, 1.0);
 
-    // Non-linear gradient stops — warm horizon band wider than before
-    // haze 0.0 → horizon 0.02 → mid 0.08 → upper 0.30 → zenith 0.75+
-    float hazeToHorizon = smoothstep(0.0, 0.02, t);
-    float horizonToMid  = smoothstep(0.02, 0.10, t);
-    float midToUpper    = smoothstep(0.08, 0.35, t);
-    float upperToZenith = smoothstep(0.30, 0.80, t);
+    // 5-stop gradient — SMOOTH transitions matching film's atmospheric look
+    // Key: film sky is dominated by BLUE. Warm zone is tiny and muted.
+    // Film pixel analysis (see FILM_PIXEL_ANALYSIS.md):
+    //   t=0.00: muted warm horizon (#90A8B0 grey-blue, NOT bright orange)
+    //   t=0.03: low blue (#4080C0)
+    //   t=0.10: mid blue (#2050B8)
+    //   t=0.35: upper blue (#162878)
+    //   t=0.75: zenith (#080E35)
 
-    // Build gradient bottom-up
-    vec3 sky = uHazeColor;
-    sky = mix(sky, uHorizonColor, hazeToHorizon);
-    sky = mix(sky, uMidColor, horizonToMid);
-    sky = mix(sky, uUpperColor, midToUpper);
-    sky = mix(sky, uZenithColor, upperToZenith);
+    float s_horizonToLow = smoothstep(0.000, 0.040, t);   // horizon → low blue
+    float s_lowToMid     = smoothstep(0.025, 0.120, t);   // low blue → mid blue
+    float s_midToUpper   = smoothstep(0.080, 0.400, t);   // mid → upper blue
+    float s_upperToZen   = smoothstep(0.350, 0.800, t);   // upper → zenith
 
-    // Sun warm bleed — Shinkai's signature warm glow bleeding upward near sun
-    // Stronger effect: warm golden light radiates from sun position into lower sky
+    vec3 sky = uHorizonColor;
+    sky = mix(sky, uLowBlueColor, s_horizonToLow);
+    sky = mix(sky, uMidColor,     s_lowToMid);
+    sky = mix(sky, uUpperColor,   s_midToUpper);
+    sky = mix(sky, uZenithColor,  s_upperToZen);
+
+    // Sun warm influence — VERY subtle, only near sun position
     vec3 sunDir = normalize(uSunDirection);
     float sunDot = dot(viewDir, sunDir);
-    float sunProximity = pow(max(sunDot, 0.0), 3.0);
-    float lowSkyMask = 1.0 - smoothstep(0.05, 0.45, t); // extends up to ~45% elevation
-    sky = mix(sky, mix(sky, uHorizonColor, 0.5), sunProximity * lowSkyMask * 0.8);
+    float sunProximity = pow(max(sunDot, 0.0), 5.0);
+    float lowSkyMask = 1.0 - smoothstep(0.01, 0.08, t);
+    vec3 warmTint = vec3(0.15, 0.08, 0.02);
+    sky += warmTint * sunProximity * lowSkyMask * 0.5;
 
-    // Sun glow — tight disc + compact halo
-    float sunDisc = pow(max(sunDot, 0.0), 512.0) * uSunIntensity * 2.0;  // sharp bright disc
-    float sunGlow = pow(max(sunDot, 0.0), 128.0) * uSunIntensity * 0.2;  // tighter glow
-    float sunHalo = pow(max(sunDot, 0.0), 20.0) * 0.04;                   // subtle halo
-
+    // Sun glow — film-accurate: small contained glow ~2° radius (~5% of frame)
+    // pow(1200) = tight disc ~0.6° radius
+    // pow(800) = inner glow ~1.5° radius (was 300→3.9°, too wide)
+    // pow(200) = outer halo ~3.4° radius (was 60→8.7°, too wide)
+    float sunDisc = pow(max(sunDot, 0.0), 1200.0) * uSunIntensity * 1.0;
+    float sunGlow = pow(max(sunDot, 0.0), 800.0) * uSunIntensity * 0.04;
+    float sunHalo = pow(max(sunDot, 0.0), 200.0) * 0.004;
     sky += uSunColor * (sunDisc + sunGlow + sunHalo);
 
-    // Below horizon: fade to very dark terrain color
-    float belowHorizon = smoothstep(-0.05, 0.0, elevation);
-    vec3 groundColor = vec3(0.02, 0.03, 0.02); // very dark green
+    // Below horizon: dark terrain
+    float belowHorizon = smoothstep(-0.04, 0.0, elevation);
+    vec3 groundColor = vec3(0.02, 0.03, 0.02);
     sky = mix(groundColor, sky, belowHorizon);
 
     gl_FragColor = vec4(sky, 1.0);
@@ -82,14 +82,14 @@ const fragmentShader = /* glsl */ `
 
 export function createShinkaiSkyUniforms(sunDirection: THREE.Vector3) {
   return {
-    uZenithColor:  { value: new THREE.Color('#1E3878') },  // deep indigo — must survive contrast+vignette as visible blue
-    uUpperColor:   { value: new THREE.Color('#244098') },  // rich royal blue — distinctly blue after post
-    uMidColor:     { value: new THREE.Color('#3570C0') },  // bright saturated blue — film's dominant sky tone
-    uHorizonColor: { value: new THREE.Color('#D89048') },  // rich warm golden (wider band in film)
-    uHazeColor:    { value: new THREE.Color('#F0D8B0') },  // pale gold haze
-    uSunColor:     { value: new THREE.Color('#FFF8E0') },  // warm white
-    uSunDirection: { value: sunDirection.clone().normalize() },
-    uSunIntensity: { value: 1.8 },                         // controlled — SunDisc mesh provides the main glow
+    uZenithColor:   { value: new THREE.Color('#080E35') },  // near-black indigo (film: top 3%)
+    uUpperColor:    { value: new THREE.Color('#102060') },  // dark blue (film: around planet)
+    uMidColor:      { value: new THREE.Color('#1840A0') },  // vivid saturated blue (film dominant)
+    uLowBlueColor:  { value: new THREE.Color('#4080C0') },  // light blue near horizon
+    uHorizonColor:  { value: new THREE.Color('#90A8B8') },  // muted grey-blue at horizon line
+    uSunColor:      { value: new THREE.Color('#FFF8E0') },  // warm white
+    uSunDirection:  { value: sunDirection.clone().normalize() },
+    uSunIntensity:  { value: 1.5 },
   }
 }
 

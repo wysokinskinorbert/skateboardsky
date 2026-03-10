@@ -78,20 +78,15 @@ const bodyFragmentShader = /* glsl */ `
     // Atmosphere rim glow — very bright emissive at body edge (Shinkai-style)
     float rimFresnel = 1.0 - fresnel;
 
-    // Thin bright atmosphere rim — film-accurate: very narrow, sharp line
-    float rimGlow = pow(rimFresnel, 10.0) * uAtmosphereIntensity * 0.35;
-    vec3 atmosphereGlow = uAtmosphereColor * rimGlow;
+    // Film-accurate: razor-thin atmosphere rim (~2-3px in rendered frame)
+    // Using smoothstep cutoff instead of pow() for precise pixel-width control.
+    // rimFresnel 0.996 = ~0.23° from edge, 0.9995 = ~0.03° from edge
+    // At HFOV~105°/1200px, each pixel ≈ 0.087°, so this band ≈ 2-3px wide.
+    float rimBand = smoothstep(0.993, 0.999, rimFresnel);
+    vec3 atmosphereGlow = uAtmosphereColor * rimBand * uAtmosphereIntensity * 1.5;
 
-    // Subtle wider scatter — minimal, just a hint
-    float softGlow = pow(rimFresnel, 4.0) * uAtmosphereIntensity * 0.03;
-    vec3 softAtmosphere = uAtmosphereColor * softGlow;
-
-    // Ultra-thin HDR edge for bloom halo — contained
-    float bloomRim = pow(rimFresnel, 18.0) * uAtmosphereIntensity * 0.8;
-    vec3 bloomGlow = uAtmosphereColor * bloomRim;
-
-    // Blend: body transitions to bright atmosphere glow at the rim
-    vec3 color = bodyColor + atmosphereGlow + softAtmosphere + bloomGlow;
+    // Blend: body + thin atmosphere line at rim
+    vec3 color = bodyColor + atmosphereGlow;
 
     // Clip planet below terrain level — prevents bleed through terrain gaps
     if (vWorldPosition.y < 0.0) discard;
@@ -102,11 +97,12 @@ const bodyFragmentShader = /* glsl */ `
 
 export function createPlanetBodyUniforms(
   sunDirection: THREE.Vector3,
+  bodyColor: THREE.Color,
   atmosphereColor: THREE.Color,
   atmosphereIntensity: number,
 ) {
   return {
-    uBodyColor: { value: new THREE.Color('#1A3858') },  // slightly brighter dark teal — visible as planet, not black void
+    uBodyColor: { value: bodyColor.clone() },
     uSunDirection: { value: sunDirection.clone().normalize() },
     uAtmosphereColor: { value: atmosphereColor.clone() },
     uAtmosphereIntensity: { value: atmosphereIntensity },

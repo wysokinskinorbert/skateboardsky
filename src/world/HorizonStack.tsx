@@ -68,9 +68,9 @@ export function HorizonStack() {
 function OceanPlane() {
   const meshRef = useRef<THREE.Mesh>(null)
   const uniforms = useMemo(() => ({
-    uShallowColor: { value: new THREE.Color('#30A8C0') },
-    uDeepColor: { value: new THREE.Color('#105878') },
-    uHazeColor: { value: new THREE.Color('#80AAC0') },
+    uShallowColor: { value: new THREE.Color('#186878') },
+    uDeepColor: { value: new THREE.Color('#082840') },
+    uHazeColor: { value: new THREE.Color('#587080') },
     uTime: { value: 0.0 },
   }), [])
 
@@ -151,10 +151,10 @@ const oceanFragmentShader = /* glsl */ `
 
     waterColor += shimmer;
 
-    // Atmospheric haze at distance — reduced decay to keep vivid ocean color
+    // Atmospheric haze at distance — warm golden blending for Shinkai look
     float dist = length(vWorldPosition - cameraPosition);
-    float haze = 1.0 - exp(-dist * 0.0008);
-    waterColor = mix(waterColor, uHazeColor, haze * 0.7);
+    float haze = 1.0 - exp(-dist * 0.0012);
+    waterColor = mix(waterColor, uHazeColor, haze * 0.75);
 
     gl_FragColor = vec4(waterColor, 1.0);
   }
@@ -172,7 +172,7 @@ interface MountainRidgeProps {
 function MountainRidge({ position, scale, color, hazeAmount }: MountainRidgeProps) {
   const uniforms = useMemo(() => ({
     uColor: { value: new THREE.Color(color) },
-    uHazeColor: { value: new THREE.Color('#B8D0E0') },
+    uHazeColor: { value: new THREE.Color('#6080A0') },
     uHazeAmount: { value: hazeAmount },
   }), [color, hazeAmount])
 
@@ -331,8 +331,8 @@ const cityFragmentShader = /* glsl */ `
 
 function HazeVeil() {
   const uniforms = useMemo(() => ({
-    uWarmColor: { value: new THREE.Color('#D0A068') },
-    uCoolColor: { value: new THREE.Color('#6888A8') },
+    uWarmColor: { value: new THREE.Color('#D8A060') },
+    uCoolColor: { value: new THREE.Color('#7090A0') },
   }), [])
 
   return (
@@ -375,7 +375,7 @@ const hazeVeilFragmentShader = /* glsl */ `
 
     // Alpha: strongest at center, fading at top and bottom
     float alpha = smoothstep(0.0, 0.3, vUv.y) * smoothstep(1.0, 0.4, vUv.y);
-    alpha *= 0.45; // warm atmospheric glow at horizon
+    alpha *= 0.08; // minimal — sky gradient handles atmospheric tone
 
     // Horizontal fade at edges
     float edgeFade = smoothstep(0.0, 0.15, vUv.x) * smoothstep(1.0, 0.85, vUv.x);

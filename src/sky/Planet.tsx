@@ -28,6 +28,7 @@ export function Planet() {
   const bodyUniforms = useMemo(
     () => createPlanetBodyUniforms(
       sunDirection,
+      PLANET.bodyColor,
       PLANET.atmosphereColor,
       PLANET.atmosphereIntensity,
     ),

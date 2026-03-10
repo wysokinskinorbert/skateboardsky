@@ -2,9 +2,9 @@ import * as THREE from 'three'
 
 // Sky — sun position for custom Shinkai gradient shader
 export const SKY = {
-  // Sun position — right side of frame, camera looks -Z so azimuth ~π*0.9 = right of center
-  sunAzimuth: Math.PI * 0.9,    // 162° = forward-right, visible in FOV
-  sunElevation: Math.PI * 0.10, // ~18° above horizon = golden hour
+  // Film measurement: sun at horizon level (Y≈42% in portrait frame = ~3-5° elevation)
+  sunAzimuth: Math.PI * 0.9,    // 162° = forward-right
+  sunElevation: Math.PI * 0.025, // ~4.5° above horizon — golden hour, sun near horizon
 } as const
 
 // Color grading — matching film's vivid, saturated look
@@ -14,63 +14,62 @@ export const COLOR_GRADING = {
   toneMapping: THREE.NoToneMapping,
   toneMappingExposure: 1.0,
 
-  // Bloom — HDR emission on sun disc triggers this (tighter, film-accurate)
-  bloomIntensity: 0.6,
-  bloomThreshold: 1.8,
-  bloomSmoothing: 0.3,
-  bloomRadius: 0.5,
+  // Bloom — only the brightest sun pixels trigger, contained golden glow
+  bloomIntensity: 0.30,
+  bloomThreshold: 2.5,
+  bloomSmoothing: 0.15,
+  bloomRadius: 0.3,
 
   // Split toning: cool shadows + warm highlights (Shinkai signature)
   shadowColor: new THREE.Color('#2A4080'),   // cool blue shadows
   highlightColor: new THREE.Color('#F0C060'), // warm gold highlights
 } as const
 
-// Sun disc — HDR emission mesh, smaller and more controlled for film-accurate glow
+// Sun disc — HDR emission mesh, film: ~1% of frame = tiny bright point
+// At distance 450, radius 3 = angular size ≈ 0.38° (film: ~0.5°)
 export const SUN = {
-  color: new THREE.Color('#FFF0D0'),  // warmer golden, less white
-  emissionIntensity: 2.2,  // HDR — triggers bloom (tight, film-accurate)
-  radius: 7,               // compact disc (film: small bright point with tight glow)
+  color: new THREE.Color('#FFE8C0'),  // golden warm, not white
+  emissionIntensity: 2.0,  // higher HDR to trigger bloom at threshold 2.5
+  radius: 3,               // smaller disc for film-accurate compact point
   distance: 450,           // placed on sky dome sphere
 } as const
 
 // Planet — giant arc in upper sky, positioned high so only bottom arc visible
-// Film reference: planet arc sits in top ~20-25% of frame with sky visible below
+// Film measurement: arc spans ~90% frame width, only bottom ~15-20% of sphere visible
+// Calculation: HFOV≈104.6°, need 94° span → R/D≈0.74 → R=950, D≈1281
 export const PLANET = {
-  position: [30, 1050, -750] as [number, number, number],
-  radius: 650,
-  bodyColor: new THREE.Color('#1A4060'),        // dark teal (from keyframes)
-  atmosphereColor: new THREE.Color('#70D8FF'),  // vivid cyan
-  atmosphereIntensity: 1.2,                      // subtle rim — film has very thin, contained glow
-  atmosphereScale: 1.025,                        // very tight to body — thin rim
-  ringColor: new THREE.Color('#90E0FF'),         // pale cyan ring
-  ringIntensity: 1.5,                            // HDR
+  position: [20, 1100, -700] as [number, number, number],
+  radius: 950,
+  bodyColor: new THREE.Color('#1A3858'),        // dark navy-teal (film: #1A3858)
+  atmosphereColor: new THREE.Color('#60D0FF'),  // bright cyan (film: #60D0FF, very thin 1-2px)
+  atmosphereIntensity: 0.8,                      // subtle — film has very thin, contained glow
+  atmosphereScale: 1.012,                        // extremely tight to body — thinner rim than before
+  ringColor: new THREE.Color('#80D0F0'),         // pale cyan ring
+  ringIntensity: 1.2,                            // moderate HDR
 } as const
 
-// Cloud layers — billboard cards with procedural shapes
+// Cloud layers — minimal, film-accurate
 export const CLOUDS = {
-  // Back layer — behind planet, atmospheric perspective (hazy, blue-tinted)
   back: {
-    count: 16,
-    distanceRange: [500, 750] as [number, number],
-    scaleRange: [50, 120] as [number, number],
-    elevationRange: [0.04, 0.25] as [number, number],
-    azimuthSpread: Math.PI * 0.35,
-    tint: new THREE.Color('#C0D8F0'),                    // brighter blue-white
-    opacity: 0.5,
+    count: 0,
+    distanceRange: [600, 750] as [number, number],
+    scaleRange: [40, 70] as [number, number],
+    elevationRange: [0.10, 0.18] as [number, number],
+    azimuthSpread: Math.PI * 0.30,
+    tint: new THREE.Color('#A0B8D0'),
+    opacity: 0.18,
   },
-  // Front layer — vivid cumulus, some MASSIVE hero clouds
   front: {
-    count: 35,
-    distanceRange: [200, 550] as [number, number],
-    scaleRange: [60, 220] as [number, number],          // hero clouds up to 220 units!
-    elevationRange: [-0.03, 0.30] as [number, number],  // from below horizon to high
-    azimuthSpread: Math.PI * 0.45,                       // ±81° wide spread
-    tint: new THREE.Color('#FFFFFF'),                    // pure white
-    opacity: 0.92,
+    count: 0,
+    distanceRange: [280, 420] as [number, number],
+    scaleRange: [80, 160] as [number, number],
+    elevationRange: [0.08, 0.18] as [number, number],
+    azimuthSpread: Math.PI * 0.35,
+    tint: new THREE.Color('#F0F0F8'),
+    opacity: 0.80,
   },
-  driftSpeed: 0.02,
-  // Parallax: back layer drifts slower than front (depth illusion)
-  backDriftMultiplier: 0.4,
+  driftSpeed: 0.015,
+  backDriftMultiplier: 0.3,
   frontDriftMultiplier: 1.0,
 } as const
 

@@ -1,5 +1,6 @@
 import { forwardRef, useMemo } from 'react'
 import { Effect, BlendFunction } from 'postprocessing'
+import * as THREE from 'three'
 
 /**
  * Single custom post-processing effect combining:
@@ -17,6 +18,9 @@ const fragment = /* glsl */ `
   uniform float uSaturation;
   uniform float uVignetteOffset;
   uniform float uVignetteDarkness;
+  uniform float uSplitToneStrength;
+  uniform vec3 uShadowTint;
+  uniform vec3 uHighlightTint;
 
   void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor) {
     vec3 color = inputColor.rgb;
@@ -26,7 +30,6 @@ const fragment = /* glsl */ `
     if (uContrast > 0.0) {
       vec3 contrasted = (color - 0.5) / (1.0 - uContrast) + 0.5;
       // Protect dark values from being crushed to black (film "toe" curve)
-      // Below ~0.12 brightness, use a gentle lift instead of harsh crush
       vec3 shadowBlend = smoothstep(vec3(0.0), vec3(0.12), color);
       color = mix(color * (1.0 + uContrast * 0.2), contrasted, shadowBlend);
     } else {
@@ -36,6 +39,14 @@ const fragment = /* glsl */ `
     // Saturation (luminance-based)
     float luma = dot(color, vec3(0.299, 0.587, 0.114));
     color = mix(vec3(luma), color, 1.0 + uSaturation);
+
+    // Split toning — Shinkai signature: cool blue shadows + warm golden highlights
+    if (uSplitToneStrength > 0.0) {
+      float shadowMask = 1.0 - smoothstep(0.0, 0.45, luma);
+      float highlightMask = smoothstep(0.55, 1.0, luma);
+      color = mix(color, color * uShadowTint, shadowMask * uSplitToneStrength);
+      color = mix(color, color * uHighlightTint, highlightMask * uSplitToneStrength * 0.6);
+    }
 
     // Vignette
     float dist = distance(uv, vec2(0.5));
@@ -52,6 +63,9 @@ interface ColorGradingOptions {
   saturation?: number
   vignetteOffset?: number
   vignetteDarkness?: number
+  splitToneStrength?: number
+  shadowTint?: THREE.Color
+  highlightTint?: THREE.Color
 }
 
 class ColorGradingEffect extends Effect {
@@ -61,15 +75,21 @@ class ColorGradingEffect extends Effect {
     saturation = 0.4,
     vignetteOffset = 0.25,
     vignetteDarkness = 0.4,
+    splitToneStrength = 0.0,
+    shadowTint = new THREE.Color('#8090C0'),
+    highlightTint = new THREE.Color('#F0D090'),
   }: ColorGradingOptions = {}) {
     super('ColorGrading', fragment, {
       blendFunction: BlendFunction.SET,
-      uniforms: new Map<string, { value: number }>([
+      uniforms: new Map<string, { value: number | THREE.Color }>([
         ['uBrightness', { value: brightness }],
         ['uContrast', { value: contrast }],
         ['uSaturation', { value: saturation }],
         ['uVignetteOffset', { value: vignetteOffset }],
         ['uVignetteDarkness', { value: vignetteDarkness }],
+        ['uSplitToneStrength', { value: splitToneStrength }],
+        ['uShadowTint', { value: shadowTint }],
+        ['uHighlightTint', { value: highlightTint }],
       ]),
     })
   }
@@ -81,6 +101,9 @@ interface ColorGradingProps {
   saturation?: number
   vignetteOffset?: number
   vignetteDarkness?: number
+  splitToneStrength?: number
+  shadowTint?: THREE.Color
+  highlightTint?: THREE.Color
 }
 
 export const ColorGrading = forwardRef<ColorGradingEffect, ColorGradingProps>(
@@ -91,6 +114,7 @@ export const ColorGrading = forwardRef<ColorGradingEffect, ColorGradingProps>(
       props.saturation,
       props.vignetteOffset,
       props.vignetteDarkness,
+      props.splitToneStrength,
     ])
     return <primitive ref={ref} object={effect} dispose={null} />
   }

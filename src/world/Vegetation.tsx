@@ -105,8 +105,8 @@ function generateTreeInstances(curve: THREE.CatmullRomCurve3): TreeInstance[] {
       seed++
     }
 
-    // Semi-random spacing: 6-14 meters
-    dist += 6 + hash * 8
+    // Dense semi-random spacing: 4-10 meters (film shows thick treelines)
+    dist += 4 + hash * 6
     seed++
   }
 
@@ -130,15 +130,15 @@ function TreeBillboard({ position, scale, treeType, seed }: TreeBillboardProps) 
     uType: { value: treeType === 'sakura' ? 1.0 : 0.0 },
     uFoliageColor: {
       value: treeType === 'sakura'
-        ? new THREE.Color('#D8A0A8')
-        : new THREE.Color('#2A5828')
+        ? new THREE.Color('#C08898')
+        : new THREE.Color('#1E4820')
     },
     uFoliageColor2: {
       value: treeType === 'sakura'
-        ? new THREE.Color('#F0C8D0')
-        : new THREE.Color('#3A7838')
+        ? new THREE.Color('#E0B0B8')
+        : new THREE.Color('#2E6028')
     },
-    uTrunkColor: { value: new THREE.Color('#5A4030') },
+    uTrunkColor: { value: new THREE.Color('#4A3425') },
   }), [seed, treeType])
 
   // Billboard: always face camera
@@ -152,7 +152,7 @@ function TreeBillboard({ position, scale, treeType, seed }: TreeBillboardProps) 
     <mesh
       ref={meshRef}
       position={position}
-      scale={[scale, scale * 1.3, 1]}
+      scale={[scale * 1.2, scale * 1.1, 1]}
       renderOrder={5}
     >
       <planeGeometry args={[1, 1]} />
@@ -214,44 +214,59 @@ const treeFragmentShader = /* glsl */ `
     float trunkTop = -0.05;
     float isTrunk = step(abs(uv.x), trunkWidth) * step(uv.y, trunkTop) * step(-1.0, uv.y);
 
-    // Foliage — large procedural blob, nearly filling the billboard
-    vec2 foliageCenter = vec2(0.0, 0.20);
-    // Slightly different shape per tree based on seed
-    float foliageRadX = 0.65 + hash(vec2(uSeed, 0.0)) * 0.15;
-    float foliageRadY = 0.55 + hash(vec2(0.0, uSeed)) * 0.15;
+    // Foliage — wider, more irregular crown (dense treeline look, not blob)
+    vec2 foliageCenter = vec2(0.0, 0.18);
+    // Wider than tall — creates bushy canopy, unique per tree
+    float foliageRadX = 0.72 + hash(vec2(uSeed, 0.0)) * 0.20;
+    float foliageRadY = 0.48 + hash(vec2(0.0, uSeed)) * 0.15;
 
     vec2 foliageUV = (uv - foliageCenter) / vec2(foliageRadX, foliageRadY);
     float foliageDist = length(foliageUV);
 
-    // Noisy edge for organic shape — more detail for sakura (petal clusters)
-    float edgeNoise = noise(foliageUV * 4.0 + vec2(uSeed * 13.37, uSeed * 7.42));
-    float edgeNoise2 = noise(foliageUV * 8.0 + vec2(uSeed * 3.14));
-    float noiseAmount = uType > 0.5 ? 0.35 : 0.25;
-    float foliageShape = 1.0 - foliageDist + (edgeNoise - 0.5) * noiseAmount + (edgeNoise2 - 0.5) * noiseAmount * 0.5;
+    // Multi-octave noisy edge for organic, irregular canopy shape
+    float edgeNoise = noise(foliageUV * 3.0 + vec2(uSeed * 13.37, uSeed * 7.42));
+    float edgeNoise2 = noise(foliageUV * 7.0 + vec2(uSeed * 3.14));
+    float edgeNoise3 = noise(foliageUV * 12.0 + vec2(uSeed * 5.55, uSeed * 2.22));
+    float noiseAmount = uType > 0.5 ? 0.40 : 0.32;
+    float foliageShape = 1.0 - foliageDist
+      + (edgeNoise - 0.5) * noiseAmount
+      + (edgeNoise2 - 0.5) * noiseAmount * 0.6
+      + (edgeNoise3 - 0.5) * noiseAmount * 0.3;
 
-    float isFoliage = smoothstep(-0.05, 0.1, foliageShape);
+    // Bumpy top edge — creates "cauliflower" crown like real trees
+    float topBumps = noise(vec2(uv.x * 6.0 + uSeed * 4.0, 0.0)) * 0.15;
+    foliageShape += topBumps * step(0.0, uv.y);
 
-    // Color variation within foliage — lighter on top, darker at bottom
-    float colorMix = smoothstep(-0.3, 0.5, uv.y) * 0.6 + noise(uv * 3.0 + vec2(uSeed)) * 0.4;
-    vec3 foliageColor = mix(uFoliageColor, uFoliageColor2, colorMix);
+    float isFoliage = smoothstep(-0.06, 0.12, foliageShape);
 
-    // Sunlit side — lighter on right (matching sun direction)
-    float sunSide = smoothstep(-0.5, 0.5, uv.x) * 0.15;
-    foliageColor += sunSide;
+    // Color variation within foliage — lighter on top/sun-side, darker at bottom
+    float colorMix = smoothstep(-0.4, 0.5, uv.y) * 0.5 + noise(uv * 4.0 + vec2(uSeed)) * 0.3;
+    // Add lateral variation — patches of light/dark within crown
+    float patchNoise = noise(uv * 5.0 + vec2(uSeed * 2.5, uSeed * 1.7));
+    colorMix += (patchNoise - 0.5) * 0.25;
+    vec3 foliageColor = mix(uFoliageColor, uFoliageColor2, clamp(colorMix, 0.0, 1.0));
 
-    // Internal shadow for depth
-    float internalShadow = smoothstep(0.0, 0.5, foliageShape) * 0.2;
-    foliageColor *= 0.85 + internalShadow;
+    // Sunlit side — subtly lighter on right (matching sun direction from right)
+    float sunSide = smoothstep(-0.5, 0.6, uv.x) * 0.10;
+    foliageColor += vec3(sunSide * 0.6, sunSide * 0.8, sunSide * 0.2);  // subtle warm tint
+
+    // Internal shadow for depth — deeper shadows in crown interior
+    float internalShadow = smoothstep(0.0, 0.6, foliageShape) * 0.25;
+    foliageColor *= 0.75 + internalShadow;
+
+    // Bottom shadow — darker underside
+    float bottomShadow = smoothstep(0.1, -0.4, uv.y) * 0.15;
+    foliageColor *= 1.0 - bottomShadow;
 
     // Combine trunk + foliage
     float alpha = max(isTrunk, isFoliage);
     vec3 color = mix(uTrunkColor, foliageColor, step(0.01, isFoliage));
 
-    // Distance-based atmospheric haze — gentle to preserve sakura pink
+    // Distance-based atmospheric haze — warm golden for Shinkai golden hour
     float dist = length(vWorldPosition - cameraPosition);
-    float haze = 1.0 - exp(-dist * 0.002);
-    vec3 hazeColor = vec3(0.55, 0.65, 0.75);
-    color = mix(color, hazeColor, haze * 0.5);
+    float haze = 1.0 - exp(-dist * 0.0025);
+    vec3 hazeColor = vec3(0.55, 0.52, 0.46);  // warm golden haze
+    color = mix(color, hazeColor, haze * 0.55);
 
     if (alpha < 0.1) discard;
     gl_FragColor = vec4(color, alpha);

@@ -33,8 +33,8 @@ const fragment = /* glsl */ `
       // Sample scene luminance at this position
       vec4 sampleColor = texture2D(inputBuffer, samplePos);
       float lum = dot(sampleColor.rgb, vec3(0.299, 0.587, 0.114));
-      // Only accumulate bright areas (sky/sun, not dark terrain)
-      float brightMask = smoothstep(0.5, 1.2, lum);
+      // Only accumulate HDR-bright areas (sun disc, bright cloud edges — not sky)
+      float brightMask = smoothstep(0.9, 1.8, lum);
       illumination += brightMask * weight * currentDecay;
       currentDecay *= decay;
     }

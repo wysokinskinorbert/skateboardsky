@@ -19,16 +19,16 @@ const fragment = /* glsl */ `
     vec2 delta = uv - sunPos;
 
     // === Anamorphic streak (horizontal) ===
-    // Tight vertical gaussian, very wide horizontal — dramatic anamorphic
-    float streakY = exp(-delta.y * delta.y * 12000.0);
-    float streakX = exp(-delta.x * delta.x * 1.8);
+    // Tight vertical gaussian, moderate horizontal — film-accurate contained streak
+    float streakY = exp(-delta.y * delta.y * 15000.0);
+    float streakX = exp(-delta.x * delta.x * 8.0);
     float streak = streakY * streakX;
 
-    // Color: warm gold at center → cool blue at horizontal edges
+    // Color: warm golden at center → cool blue-purple at horizontal edges
     vec3 streakColor = mix(
-      vec3(1.0, 0.88, 0.55),
-      vec3(0.45, 0.55, 0.9),
-      smoothstep(0.0, 0.45, abs(delta.x))
+      vec3(1.0, 0.85, 0.50),
+      vec3(0.40, 0.50, 0.85),
+      smoothstep(0.0, 0.40, abs(delta.x))
     );
 
     // === Sun glow halo ===
@@ -54,12 +54,12 @@ const fragment = /* glsl */ `
 
       // Chromatic shift: blue → purple per ghost
       vec3 gc = mix(vec3(0.3, 0.45, 1.0), vec3(0.6, 0.3, 0.85), fi / 4.0);
-      ghostSum += gc * (disc * 0.05 + ring * 0.03) / fi;
+      ghostSum += gc * (disc * 0.03 + ring * 0.02) / fi;
     }
 
     // === Combine ===
     vec3 flare = streakColor * streak * 0.30
-               + vec3(1.0, 0.95, 0.85) * halo * 0.5
+               + vec3(1.0, 0.95, 0.85) * halo * 0.35
                + ghostSum;
     flare *= uIntensity;
 
@@ -119,13 +119,8 @@ export const LensFlare = forwardRef(function LensFlare(_props, ref) {
     // Fade out smoothly when sun nears screen edges or is behind camera
     const fade = behind ? 0 : edgeFade(sx, sy)
 
-    // Sun-cloud occlusion — simulate clouds drifting across sun
-    const t = clock.getElapsedTime()
-    const occ1 = Math.sin(t * 0.12 + 1.5) * 0.5 + 0.5
-    const occ2 = Math.sin(t * 0.07 + 3.8) * 0.5 + 0.5
-    const cloudOcclusion = 0.3 + 0.7 * smoothstep(0.3, 0.6, occ1 * 0.6 + occ2 * 0.4)
-
-    effect.uniforms.get('uIntensity')!.value = fade * cloudOcclusion
+    // Steady intensity — no cloud occlusion, always visible like in film
+    effect.uniforms.get('uIntensity')!.value = fade * 1.0
   })
 
   return <primitive ref={ref} object={effect} dispose={null} />

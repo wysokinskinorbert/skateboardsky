@@ -20,12 +20,18 @@ const fragment = /* glsl */ `
     // Read depth from depth texture
     float depth = texture2D(depthBuffer, uv).r;
 
+    // Skip sky pixels — sky dome sits at far plane, must NOT receive haze
+    if (depth > 0.9999) {
+      outputColor = inputColor;
+      return;
+    }
+
     // Linearize depth (perspective projection)
     float near = cameraNear;
     float far = cameraFar;
     float linearDepth = (near * far) / (far - depth * (far - near));
 
-    // Exponential haze — gentle, only affects far objects
+    // Exponential haze — gentle, only affects world objects
     float haze = 1.0 - exp(-(linearDepth - uOffset) * uDensity);
     haze = clamp(haze, 0.0, 1.0);
 
@@ -33,8 +39,8 @@ const fragment = /* glsl */ `
     float colorMix = smoothstep(150.0, 700.0, linearDepth);
     vec3 hazeColor = mix(uNearHazeColor, uFarHazeColor, colorMix);
 
-    // Gentle blend — preserve scene colors, add subtle depth layering
-    vec3 color = mix(inputColor.rgb, hazeColor, haze * 0.35);
+    // Warm atmospheric depth for Shinkai golden hour feeling
+    vec3 color = mix(inputColor.rgb, hazeColor, haze * 0.45);
 
     outputColor = vec4(color, inputColor.a);
   }
@@ -46,10 +52,10 @@ class AtmosphericHazeEffect extends Effect {
       blendFunction: BlendFunction.NORMAL,
       attributes: EffectAttribute.DEPTH,
       uniforms: new Map<string, THREE.Uniform>([
-        ['uNearHazeColor', new THREE.Uniform(new THREE.Color('#C0B898'))],
-        ['uFarHazeColor', new THREE.Uniform(new THREE.Color('#80A0C0'))],
-        ['uDensity', new THREE.Uniform(0.0015)],
-        ['uOffset', new THREE.Uniform(150.0)],
+        ['uNearHazeColor', new THREE.Uniform(new THREE.Color('#C8B090'))],
+        ['uFarHazeColor', new THREE.Uniform(new THREE.Color('#7898B0'))],
+        ['uDensity', new THREE.Uniform(0.0020)],
+        ['uOffset', new THREE.Uniform(120.0)],
       ]),
     })
   }

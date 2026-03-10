@@ -5,6 +5,7 @@ import {
 } from '@react-three/postprocessing'
 import { ToneMappingMode } from 'postprocessing'
 import * as THREE from 'three'
+import { useMemo } from 'react'
 import { COLOR_GRADING } from '../game/constants'
 import { LensFlare } from './LensFlare'
 import { GodRays } from './GodRays'
@@ -21,6 +22,9 @@ import { ColorGrading } from './ColorGrading'
  *    (single custom effect to avoid multi-effect alpha compositing bugs)
  */
 export function PostProcessingStack() {
+  const shadowTint = useMemo(() => new THREE.Color('#8090C0'), [])
+  const highlightTint = useMemo(() => new THREE.Color('#F0D090'), [])
+
   return (
     <EffectComposer multisampling={4}>
       <Bloom
@@ -34,11 +38,14 @@ export function PostProcessingStack() {
       <AtmosphericHaze />
       <ToneMapping mode={ToneMappingMode.NEUTRAL} />
       <ColorGrading
-        brightness={0.03}
+        brightness={0.04}
         contrast={0.22}
-        saturation={0.45}
-        vignetteOffset={0.30}
-        vignetteDarkness={0.35}
+        saturation={0.50}
+        vignetteOffset={0.32}
+        vignetteDarkness={0.30}
+        splitToneStrength={0.35}
+        shadowTint={shadowTint}
+        highlightTint={highlightTint}
       />
     </EffectComposer>
   )
