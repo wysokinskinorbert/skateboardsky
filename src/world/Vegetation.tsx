@@ -23,18 +23,7 @@ export function Vegetation() {
   const trees = useMemo(() => {
     const curve = createRoadSpline()
     const generated = generateTreeInstances(curve)
-
-    // Force prominent sakura trees at visible positions near camera
-    const heroSakura: TreeInstance[] = [
-      { position: new THREE.Vector3(-14, 20, -6), scale: 6, type: 'sakura', seed: 9001 },
-      { position: new THREE.Vector3(16, 19.5, -12), scale: 5.5, type: 'sakura', seed: 9002 },
-      { position: new THREE.Vector3(-20, 17, -28), scale: 7, type: 'sakura', seed: 9003 },
-      { position: new THREE.Vector3(22, 15, -42), scale: 5, type: 'sakura', seed: 9004 },
-      { position: new THREE.Vector3(-12, 13, -58), scale: 6.5, type: 'sakura', seed: 9005 },
-      { position: new THREE.Vector3(18, 11, -75), scale: 6, type: 'sakura', seed: 9006 },
-    ]
-
-    return [...heroSakura, ...generated]
+    return generated
   }, [])
 
   return (
@@ -100,8 +89,11 @@ function generateTreeInstances(curve: THREE.CatmullRomCurve3): TreeInstance[] {
       const baseScale = 4 + hash * 5
       const heightVar = 0.7 + Math.abs(Math.sin(seed * 7.77)) * 0.6
 
-      // Type: ~40% sakura, 60% green (film has prominent cherry blossoms among green)
-      const type: TreeType = Math.abs(Math.sin(seed * 3.14 + 2.72)) > 0.55 ? 'sakura' : 'green'
+      // Biome zones: sakura only appears after t > 0.60 (film frame_025+)
+      // Before that: 100% green. After: ~50% sakura, 50% green.
+      const isSakuraZone = t > 0.60
+      const type: TreeType = isSakuraZone && Math.abs(Math.sin(seed * 3.14 + 2.72)) > 0.45
+        ? 'sakura' : 'green'
 
       trees.push({
         position: treePos,

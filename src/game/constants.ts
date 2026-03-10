@@ -14,32 +14,33 @@ export const COLOR_GRADING = {
   toneMapping: THREE.NoToneMapping,
   toneMappingExposure: 1.0,
 
-  // Bloom — HDR emission on sun disc triggers this
-  bloomIntensity: 0.8,
-  bloomThreshold: 1.5,
-  bloomSmoothing: 0.4,
-  bloomRadius: 0.6,
+  // Bloom — HDR emission on sun disc triggers this (tighter, film-accurate)
+  bloomIntensity: 0.6,
+  bloomThreshold: 1.8,
+  bloomSmoothing: 0.3,
+  bloomRadius: 0.5,
 
   // Split toning: cool shadows + warm highlights (Shinkai signature)
   shadowColor: new THREE.Color('#2A4080'),   // cool blue shadows
   highlightColor: new THREE.Color('#F0C060'), // warm gold highlights
 } as const
 
-// Sun disc — HDR emission mesh
+// Sun disc — HDR emission mesh, smaller and more controlled for film-accurate glow
 export const SUN = {
-  color: new THREE.Color('#FFF8E7'),
-  emissionIntensity: 5.0,  // HDR — triggers bloom
-  radius: 15,
+  color: new THREE.Color('#FFF0D0'),  // warmer golden, less white
+  emissionIntensity: 2.2,  // HDR — triggers bloom (tight, film-accurate)
+  radius: 7,               // compact disc (film: small bright point with tight glow)
   distance: 450,           // placed on sky dome sphere
 } as const
 
-// Planet — giant arc in upper sky, only lower ~25% visible (rest above frame)
+// Planet — giant arc in upper sky, positioned high so only bottom arc visible
+// Film reference: planet arc sits in top ~20-25% of frame with sky visible below
 export const PLANET = {
-  position: [30, 650, -850] as [number, number, number],
-  radius: 700,
+  position: [30, 1050, -750] as [number, number, number],
+  radius: 650,
   bodyColor: new THREE.Color('#1A4060'),        // dark teal (from keyframes)
   atmosphereColor: new THREE.Color('#70D8FF'),  // vivid cyan
-  atmosphereIntensity: 1.8,                      // bright rim — bloom threshold 1.5 prevents blowout
+  atmosphereIntensity: 1.2,                      // subtle rim — film has very thin, contained glow
   atmosphereScale: 1.025,                        // very tight to body — thin rim
   ringColor: new THREE.Color('#90E0FF'),         // pale cyan ring
   ringIntensity: 1.5,                            // HDR
@@ -95,11 +96,11 @@ export const ROAD = {
   ] as [number, number, number][],
 } as const
 
-// Camera defaults — behind character on mountain road, ~55% sky / ~45% ground
+// Camera defaults — behind character on mountain road, ~60% sky / ~40% ground
 export const CAMERA = {
   fov: 72,
   near: 0.1,
   far: 2000,
   position: [0, 33, 8] as [number, number, number],
-  lookAt: [0, 24, -25] as [number, number, number],
+  lookAt: [0, 27, -30] as [number, number, number],
 } as const

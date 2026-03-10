@@ -34,11 +34,11 @@ export function PostProcessingStack() {
       <AtmosphericHaze />
       <ToneMapping mode={ToneMappingMode.NEUTRAL} />
       <ColorGrading
-        brightness={0.02}
-        contrast={0.30}
+        brightness={0.03}
+        contrast={0.22}
         saturation={0.45}
-        vignetteOffset={0.25}
-        vignetteDarkness={0.45}
+        vignetteOffset={0.30}
+        vignetteDarkness={0.35}
       />
     </EffectComposer>
   )

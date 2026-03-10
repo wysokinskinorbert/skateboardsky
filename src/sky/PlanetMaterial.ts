@@ -58,14 +58,14 @@ const bodyFragmentShader = /* glsl */ `
 
     // Surface detail — gas giant bands + storm patterns (film-accurate)
     vec2 uv = vec2(atan(normal.z, normal.x) * 2.0, normal.y * 3.0);
-    // Horizontal bands (like Jupiter)
-    float bands = noise(vec2(0.0, uv.y * 12.0)) * 0.12;
+    // Horizontal bands (like Jupiter) — more prominent for visual distinction
+    float bands = noise(vec2(0.0, uv.y * 12.0)) * 0.20;
     // Storm swirls — large-scale vortex pattern
-    float storm1 = noise(uv * 4.0 + vec2(bands * 2.0, 0.0)) * 0.18;
-    float storm2 = noise(uv * 9.0 + vec2(storm1 * 3.0, bands)) * 0.10;
+    float storm1 = noise(uv * 4.0 + vec2(bands * 2.0, 0.0)) * 0.25;
+    float storm2 = noise(uv * 9.0 + vec2(storm1 * 3.0, bands)) * 0.14;
     // Fine texture
-    float detail = noise(uv * 18.0) * 0.06;
-    float surfaceNoise = bands + storm1 + storm2 + detail - 0.15;
+    float detail = noise(uv * 18.0) * 0.08;
+    float surfaceNoise = bands + storm1 + storm2 + detail - 0.20;
 
     // Fresnel — used for both limb darkening AND atmosphere rim glow
     float fresnel = dot(normal, viewDir);
@@ -78,16 +78,16 @@ const bodyFragmentShader = /* glsl */ `
     // Atmosphere rim glow — very bright emissive at body edge (Shinkai-style)
     float rimFresnel = 1.0 - fresnel;
 
-    // Thin bright atmosphere rim — distinct line, stays below bloom threshold
-    float rimGlow = pow(rimFresnel, 5.0) * uAtmosphereIntensity * 0.7;
+    // Thin bright atmosphere rim — film-accurate: very narrow, sharp line
+    float rimGlow = pow(rimFresnel, 10.0) * uAtmosphereIntensity * 0.35;
     vec3 atmosphereGlow = uAtmosphereColor * rimGlow;
 
-    // Very subtle wider scatter — gives a hint of atmosphere depth
-    float softGlow = pow(rimFresnel, 2.5) * uAtmosphereIntensity * 0.08;
+    // Subtle wider scatter — minimal, just a hint
+    float softGlow = pow(rimFresnel, 4.0) * uAtmosphereIntensity * 0.03;
     vec3 softAtmosphere = uAtmosphereColor * softGlow;
 
-    // Ultra-thin HDR edge for bloom halo
-    float bloomRim = pow(rimFresnel, 14.0) * uAtmosphereIntensity * 1.2;
+    // Ultra-thin HDR edge for bloom halo — contained
+    float bloomRim = pow(rimFresnel, 18.0) * uAtmosphereIntensity * 0.8;
     vec3 bloomGlow = uAtmosphereColor * bloomRim;
 
     // Blend: body transitions to bright atmosphere glow at the rim
@@ -106,7 +106,7 @@ export function createPlanetBodyUniforms(
   atmosphereIntensity: number,
 ) {
   return {
-    uBodyColor: { value: new THREE.Color('#122840') },
+    uBodyColor: { value: new THREE.Color('#1A3858') },  // slightly brighter dark teal — visible as planet, not black void
     uSunDirection: { value: sunDirection.clone().normalize() },
     uAtmosphereColor: { value: atmosphereColor.clone() },
     uAtmosphereIntensity: { value: atmosphereIntensity },

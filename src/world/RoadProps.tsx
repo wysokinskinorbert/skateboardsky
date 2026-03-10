@@ -357,14 +357,14 @@ function StreetLamp({ position, rotation }: { position: THREE.Vector3; rotation:
         <meshStandardMaterial color="#505858" roughness={0.4} metalness={0.6} />
       </mesh>
 
-      {/* Lamp housing */}
+      {/* Lamp housing — small, subtle */}
       <mesh position={[1.5, 4.9, 0]}>
-        <boxGeometry args={[0.3, 0.12, 0.18]} />
+        <boxGeometry args={[0.25, 0.10, 0.15]} />
         <meshStandardMaterial
-          color="#E8E0C8"
-          emissive="#C8B888"
-          emissiveIntensity={0.3}
-          roughness={0.2}
+          color="#B0A890"
+          emissive="#908068"
+          emissiveIntensity={0.1}
+          roughness={0.4}
         />
       </mesh>
     </group>

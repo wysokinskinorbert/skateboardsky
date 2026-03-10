@@ -42,11 +42,11 @@ const fragmentShader = /* glsl */ `
     // Remap: 0 at horizon, 1 at zenith (clamp below horizon)
     float t = clamp(elevation, 0.0, 1.0);
 
-    // Non-linear gradient stops — film shows thin warm horizon, blue dominates 80%+
-    // haze 0.0 → horizon 0.01 → mid 0.06 → upper 0.30 → zenith 0.75+
-    float hazeToHorizon = smoothstep(0.0, 0.015, t);
-    float horizonToMid  = smoothstep(0.01, 0.07, t);
-    float midToUpper    = smoothstep(0.06, 0.35, t);
+    // Non-linear gradient stops — warm horizon band wider than before
+    // haze 0.0 → horizon 0.02 → mid 0.08 → upper 0.30 → zenith 0.75+
+    float hazeToHorizon = smoothstep(0.0, 0.02, t);
+    float horizonToMid  = smoothstep(0.02, 0.10, t);
+    float midToUpper    = smoothstep(0.08, 0.35, t);
     float upperToZenith = smoothstep(0.30, 0.80, t);
 
     // Build gradient bottom-up
@@ -57,12 +57,12 @@ const fragmentShader = /* glsl */ `
     sky = mix(sky, uZenithColor, upperToZenith);
 
     // Sun warm bleed — Shinkai's signature warm glow bleeding upward near sun
-    // Only affects lower sky (near horizon), fades out as elevation increases
+    // Stronger effect: warm golden light radiates from sun position into lower sky
     vec3 sunDir = normalize(uSunDirection);
     float sunDot = dot(viewDir, sunDir);
-    float sunProximity = pow(max(sunDot, 0.0), 5.0);
-    float lowSkyMask = 1.0 - smoothstep(0.05, 0.35, t); // only below ~35% elevation
-    sky = mix(sky, mix(sky, uHorizonColor, 0.3), sunProximity * lowSkyMask);
+    float sunProximity = pow(max(sunDot, 0.0), 3.0);
+    float lowSkyMask = 1.0 - smoothstep(0.05, 0.45, t); // extends up to ~45% elevation
+    sky = mix(sky, mix(sky, uHorizonColor, 0.5), sunProximity * lowSkyMask * 0.8);
 
     // Sun glow — tight disc + compact halo
     float sunDisc = pow(max(sunDot, 0.0), 512.0) * uSunIntensity * 2.0;  // sharp bright disc
@@ -82,14 +82,14 @@ const fragmentShader = /* glsl */ `
 
 export function createShinkaiSkyUniforms(sunDirection: THREE.Vector3) {
   return {
-    uZenithColor:  { value: new THREE.Color('#1E3570') },  // deep navy (visible blue after contrast shadow-protection)
-    uUpperColor:   { value: new THREE.Color('#203888') },  // rich royal blue
-    uMidColor:     { value: new THREE.Color('#2860A8') },  // rich saturated blue
-    uHorizonColor: { value: new THREE.Color('#C07838') },  // rich warm amber
+    uZenithColor:  { value: new THREE.Color('#1E3878') },  // deep indigo — must survive contrast+vignette as visible blue
+    uUpperColor:   { value: new THREE.Color('#244098') },  // rich royal blue — distinctly blue after post
+    uMidColor:     { value: new THREE.Color('#3570C0') },  // bright saturated blue — film's dominant sky tone
+    uHorizonColor: { value: new THREE.Color('#D89048') },  // rich warm golden (wider band in film)
     uHazeColor:    { value: new THREE.Color('#F0D8B0') },  // pale gold haze
     uSunColor:     { value: new THREE.Color('#FFF8E0') },  // warm white
     uSunDirection: { value: sunDirection.clone().normalize() },
-    uSunIntensity: { value: 2.0 },                         // HDR for bloom (controlled)
+    uSunIntensity: { value: 1.8 },                         // controlled — SunDisc mesh provides the main glow
   }
 }
 
