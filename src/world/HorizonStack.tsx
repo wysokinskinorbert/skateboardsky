@@ -23,32 +23,32 @@ export function HorizonStack() {
           Low y-position creates visible gap below terrain slopes. */}
       <OceanPlane />
 
-      {/* Mountain ridges — 3 layers from near to far with increasing haze.
-          Positioned higher and larger for film-accurate visibility. */}
+      {/* Mountain ridges — 3 layers, near to far with increasing haze.
+          Taller and closer for film-accurate prominence. */}
       <MountainRidge
-        position={[-40, -10, -250]}
+        position={[-40, -8, -220]}
+        scale={[500, 85, 1]}
+        color="#162E45"
+        hazeAmount={0.20}
+      />
+      <MountainRidge
+        position={[30, -6, -290]}
         scale={[550, 70, 1]}
-        color="#1E3A50"
-        hazeAmount={0.25}
+        color="#223E58"
+        hazeAmount={0.35}
       />
       <MountainRidge
-        position={[30, -8, -320]}
-        scale={[600, 60, 1]}
-        color="#2A4A62"
-        hazeAmount={0.40}
-      />
-      <MountainRidge
-        position={[-15, -11, -400]}
-        scale={[700, 50, 1]}
-        color="#3A5A78"
-        hazeAmount={0.55}
+        position={[-15, -9, -370]}
+        scale={[650, 55, 1]}
+        color="#305068"
+        hazeAmount={0.50}
       />
 
       {/* City in the valley — coastal town spread along the bay.
-          Larger scale and higher position for film-accurate visibility. */}
+          Taller and more prominent to match film visibility. */}
       <CitySilhouette
-        position={[-5, -13, -200]}
-        scale={[400, 30, 1]}
+        position={[-5, -11, -180]}
+        scale={[380, 40, 1]}
         sunDirection={sunDirection}
       />
 
@@ -220,8 +220,8 @@ interface CitySilhouetteProps {
 function CitySilhouette({ position, scale, sunDirection }: CitySilhouetteProps) {
   const uniforms = useMemo(() => ({
     uSunDirection: { value: sunDirection },
-    uBuildingColor: { value: new THREE.Color('#3A5060') },
-    uHazeColor: { value: new THREE.Color('#A0B8C8') },
+    uBuildingColor: { value: new THREE.Color('#2A3E50') },
+    uHazeColor: { value: new THREE.Color('#90ACC0') },
   }), [sunDirection])
 
   return (

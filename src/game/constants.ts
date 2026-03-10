@@ -74,16 +74,21 @@ export const CLOUDS = {
 export const ROAD = {
   width: 10,
   segments: 200,
-  // Spline control points: [x, y, z] — serpentine S-curves descending
+  // Spline control points: [x, y, z] — serpentine with UP/DOWN undulations
+  // Near: wide dramatic curves; Far: progressively narrower (haze hides detail)
   splinePoints: [
-    [0, 28, 5],          // start — under camera
-    [0, 27, -10],        // straight lead-in
-    [-18, 22, -50],      // first curve left
-    [22, 16, -100],      // switchback right
-    [-28, 9, -160],      // curve left
-    [18, 2, -220],       // switchback right
-    [-12, -5, -290],     // curve left into valley
-    [0, -10, -350],      // end — disappears into distance
+    [0, 28, 5],           // start — under camera
+    [0, 27, -10],         // straight lead-in
+    [-15, 22, -40],       // curve left, descent
+    [-22, 15, -70],       // steep descent into first valley
+    [6, 22, -95],         // switchback right — RISES 7 units (visible hill crest!)
+    [22, 14, -125],       // continuing right, descent
+    [-3, 10, -155],       // transition
+    [-18, 5, -190],       // curve left, low point
+    [-10, 9, -220],       // slight RISE (second crest)
+    [10, 2, -255],        // narrower switchback right
+    [-5, -2, -295],       // gentle curve left
+    [0, -8, -340],        // end — fades into atmospheric haze
   ] as [number, number, number][],
 } as const
 

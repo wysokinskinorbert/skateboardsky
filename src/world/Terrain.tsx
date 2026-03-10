@@ -30,31 +30,32 @@ export function Terrain() {
 
   return (
     <group>
-      {/* BASE GROUND — narrow strip at road level, near-camera only. */}
+      {/* BASE GROUND — narrow strip at road level, near-camera only.
+          Edges faded to blend smoothly with slopes and ocean. */}
       <TerrainPlane
         uniforms={uniforms}
         position={[0, 21, 0]}
         rotation={[-Math.PI / 2, 0, 0]}
         size={[50, 70]}
-        fade="none"
+        fade="edges"
       />
 
-      {/* LEFT HILLSIDE — strip descending from road-left into valley.
-          Long enough to accompany the road but fades at sides/far to show valley. */}
+      {/* LEFT HILLSIDE — wide slope descending from road-left all the way to ocean level.
+          Width 80 + lowered center → bottom edge reaches y≈-18 (ocean level). */}
       <TerrainPlane
         uniforms={uniforms}
-        position={[-38, 6, -40]}
+        position={[-42, 2, -50]}
         rotation={[-Math.PI / 2, 0, -slopeAngle]}
-        size={[55, 250]}
+        size={[80, 280]}
         fade="right"
       />
 
-      {/* RIGHT HILLSIDE — strip descending from road-right into valley. */}
+      {/* RIGHT HILLSIDE — wide slope descending from road-right to ocean level. */}
       <TerrainPlane
         uniforms={uniforms}
-        position={[38, 6, -40]}
+        position={[42, 2, -50]}
         rotation={[-Math.PI / 2, 0, slopeAngle]}
-        size={[55, 250]}
+        size={[80, 280]}
         fade="left"
       />
     </group>

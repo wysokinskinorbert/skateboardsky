@@ -30,6 +30,8 @@ export function Road() {
         fragmentShader={roadFragmentShader}
         uniforms={uniforms}
         side={THREE.DoubleSide}
+        transparent
+        depthWrite={false}
         polygonOffset
         polygonOffsetFactor={-2}
         polygonOffsetUnits={-2}
@@ -46,7 +48,7 @@ function createRoadSpline(): THREE.CatmullRomCurve3 {
   const points = ROAD.splinePoints.map(
     (p) => new THREE.Vector3(p[0], p[1], p[2])
   )
-  return new THREE.CatmullRomCurve3(points, false, 'catmullrom', 0.5)
+  return new THREE.CatmullRomCurve3(points, false, 'catmullrom', 0.3)
 }
 
 /**

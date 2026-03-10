@@ -79,7 +79,11 @@ const roadFragmentShader = /* glsl */ `
     color = mix(color, uLineColor * diffuse, centerLine);
     color = mix(color, vec3(0.9, 0.9, 0.9) * diffuse, edgeLine * 0.8);
 
-    gl_FragColor = vec4(color, 1.0);
+    // Distance fade — road dissolves into atmospheric haze like in the film
+    float distFromCam = length(vWorldPosition - cameraPosition);
+    float roadAlpha = 1.0 - smoothstep(180.0, 350.0, distFromCam);
+
+    gl_FragColor = vec4(color, roadAlpha);
   }
 `
 

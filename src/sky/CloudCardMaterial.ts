@@ -89,34 +89,56 @@ const fragmentShader = /* glsl */ `
     float alpha = smoothstep(-0.08, 0.3, shape);
     alpha *= uOpacity;
 
-    // Base cloud color — bright white
+    // Base cloud color
     vec3 color = uTint;
 
-    // Shinkai-style shading: bright white top, subtle cool shadow at bottom
-    float heightGradient = smoothstep(-0.4, 0.5, uv.y);
-    vec3 shadowTint = vec3(0.80, 0.82, 0.92); // very subtle cool shadow
-    vec3 litTint = vec3(1.0, 1.0, 1.0);       // pure white
-    color *= mix(shadowTint, litTint, heightGradient);
+    // --- 3D directional lighting (Shinkai signature) ---
+    // Project sun direction onto cloud's billboard plane
+    vec3 toCamera = normalize(cameraPosition - vWorldPosition);
+    vec3 cloudRight = normalize(cross(vec3(0.0, 1.0, 0.0), toCamera));
+    vec3 cloudUp = normalize(cross(toCamera, cloudRight));
 
-    // Inner volumetric detail — very subtle
-    float innerDetail = smoothstep(0.3, 0.7, cloudNoise);
-    color *= 0.94 + 0.06 * innerDetail;
+    // Sun direction in cloud's local 2D space
+    vec3 sunDirN = normalize(uSunDirection);
+    float sunR = dot(sunDirN, cloudRight);
+    float sunU = dot(sunDirN, cloudUp);
+    vec2 sunOnPlane = normalize(vec2(sunR, sunU));
 
-    // Sun backlighting — STRONG warm golden edges (Shinkai signature)
+    // How much this pixel faces the sun (-1=shadow side, +1=lit side)
+    float sunFacing = dot(uv, sunOnPlane);
+    float lightGrad = smoothstep(-0.5, 0.9, sunFacing);
+
+    // Shadow (blue-grey) and lit (white) — strong contrast for 3D volume
+    vec3 cloudShadow = vec3(0.50, 0.55, 0.72);  // distinct blue-grey shadow
+    vec3 cloudLit = vec3(1.0, 1.0, 1.0);         // bright white lit side
+    color *= mix(cloudShadow, cloudLit, lightGrad);
+
+    // Bottom darkening — cumulus clouds have flat darker bottoms
+    float bottomDark = smoothstep(-0.6, 0.1, uv.y);
+    color *= 0.70 + 0.30 * bottomDark;
+
+    // Internal density variation — thicker parts slightly darker (volumetric feel)
+    float density = smoothstep(-0.05, 0.35, shape);
+    color *= 0.88 + 0.12 * (1.0 - density * 0.4);
+
+    // Sun backlighting — warm golden edges (Shinkai signature)
+    // Reduced to preserve directional shadow visibility
     vec3 cloudDir = normalize(vWorldPosition);
     float sunDot = max(dot(cloudDir, normalize(uSunDirection)), 0.0);
-    float backlight = pow(sunDot, 2.0) * uBacklightStrength;
+    float backlight = pow(sunDot, 3.0) * uBacklightStrength;
 
-    // Translucent rim glow — bright golden edges where light passes through
-    float edgeMask = smoothstep(0.25, -0.1, shape);
-    color += uSunColor * backlight * (0.6 + edgeMask * 1.2);
+    // Translucent rim glow — only at thin edges, not flooding the whole cloud
+    float edgeMask = smoothstep(0.20, -0.15, shape);
+    color += uSunColor * backlight * edgeMask * 0.8;
 
-    // Top highlight from sun
-    float topHighlight = smoothstep(0.0, 0.5, uv.y) * pow(sunDot, 1.2) * 0.2;
-    color += topHighlight;
+    // Subtle warm tint on sun-facing side (not overwhelming the shadow)
+    color += vec3(0.05, 0.03, 0.0) * backlight * lightGrad * 0.3;
 
-    // Slight warm tint on sun-facing clouds
-    color += vec3(0.08, 0.04, 0.0) * backlight * 0.5;
+    // Warm horizon bounce light on cloud bottoms (Shinkai signature)
+    // Low clouds near horizon pick up warm golden light from below
+    float lowCloud = 1.0 - smoothstep(-0.2, 0.3, uv.y);       // bottom portion
+    float nearHorizon = 1.0 - smoothstep(0.0, 0.2, normalize(vWorldPosition).y); // low elevation
+    color += vec3(0.15, 0.08, 0.02) * lowCloud * nearHorizon * 0.6;
 
     // Discard fully transparent pixels
     if (alpha < 0.01) discard;

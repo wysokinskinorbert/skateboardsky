@@ -58,8 +58,8 @@ const fragment = /* glsl */ `
     }
 
     // === Combine ===
-    vec3 flare = streakColor * streak * 0.5
-               + vec3(1.0, 0.95, 0.85) * halo * 1.3
+    vec3 flare = streakColor * streak * 0.30
+               + vec3(1.0, 0.95, 0.85) * halo * 0.5
                + ghostSum;
     flare *= uIntensity;
 

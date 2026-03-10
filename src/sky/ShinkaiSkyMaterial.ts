@@ -82,8 +82,8 @@ const fragmentShader = /* glsl */ `
 
 export function createShinkaiSkyUniforms(sunDirection: THREE.Vector3) {
   return {
-    uZenithColor:  { value: new THREE.Color('#061035') },  // near-black indigo (film zenith)
-    uUpperColor:   { value: new THREE.Color('#102578') },  // deep royal blue
+    uZenithColor:  { value: new THREE.Color('#1A3065') },  // deep navy (film zenith — must be visibly blue after post-processing)
+    uUpperColor:   { value: new THREE.Color('#1E3585') },  // rich royal blue
     uMidColor:     { value: new THREE.Color('#2860A8') },  // rich saturated blue
     uHorizonColor: { value: new THREE.Color('#C07838') },  // rich warm amber
     uHazeColor:    { value: new THREE.Color('#F0D8B0') },  // pale gold haze
