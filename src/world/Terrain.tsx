@@ -40,21 +40,21 @@ export function Terrain() {
       />
 
       {/* LEFT HILLSIDE — strip descending from road-left into valley.
-          Wider and longer than before to frame the road properly. */}
+          Long enough to accompany the road but fades at sides/far to show valley. */}
       <TerrainPlane
         uniforms={uniforms}
-        position={[-38, 8, -20]}
+        position={[-38, 6, -40]}
         rotation={[-Math.PI / 2, 0, -slopeAngle]}
-        size={[55, 150]}
+        size={[55, 250]}
         fade="right"
       />
 
       {/* RIGHT HILLSIDE — strip descending from road-right into valley. */}
       <TerrainPlane
         uniforms={uniforms}
-        position={[38, 8, -20]}
+        position={[38, 6, -40]}
         rotation={[-Math.PI / 2, 0, slopeAngle]}
-        size={[55, 150]}
+        size={[55, 250]}
         fade="left"
       />
     </group>

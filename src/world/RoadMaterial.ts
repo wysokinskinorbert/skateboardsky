@@ -51,8 +51,8 @@ const roadFragmentShader = /* glsl */ `
     vec2 uv = vUv;
 
     // Asphalt base with grain texture
-    float grain = noise(uv * vec2(50.0, uRoadLength * 2.0)) * 0.08;
-    float coarseGrain = noise(uv * vec2(15.0, uRoadLength * 0.5)) * 0.05;
+    float grain = noise(uv * vec2(50.0, uRoadLength * 2.0)) * 0.05;
+    float coarseGrain = noise(uv * vec2(15.0, uRoadLength * 0.5)) * 0.03;
     vec3 asphalt = uAsphaltColor * (1.0 - grain - coarseGrain);
 
     // === Yellow center line (continuous) ===
@@ -85,7 +85,7 @@ const roadFragmentShader = /* glsl */ `
 
 export function createRoadUniforms(sunDirection: THREE.Vector3) {
   return {
-    uAsphaltColor: { value: new THREE.Color('#808080') },
+    uAsphaltColor: { value: new THREE.Color('#A8A8A8') },
     uLineColor: { value: new THREE.Color('#E8C840') },
     uSunDirection: { value: sunDirection.clone().normalize() },
     uRoadLength: { value: 50.0 },
