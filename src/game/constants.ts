@@ -40,7 +40,7 @@ export const SUN = {
 export const PLANET = {
   position: [20, 1100, -700] as [number, number, number],
   radius: 950,
-  bodyColor: new THREE.Color('#1A3858'),        // dark navy-teal (film: #1A3858)
+  bodyColor: new THREE.Color('#1E4468'),        // navy-teal, slightly brighter for visibility against zenith sky
   atmosphereColor: new THREE.Color('#60D0FF'),  // bright cyan (film: #60D0FF, very thin 1-2px)
   atmosphereIntensity: 0.8,                      // subtle — film has very thin, contained glow
   atmosphereScale: 1.012,                        // extremely tight to body — thinner rim than before

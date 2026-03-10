@@ -43,10 +43,11 @@ const fragmentShader = /* glsl */ `
     //   t=0.35: upper blue (#162878)
     //   t=0.75: zenith (#080E35)
 
-    float s_horizonToLow = smoothstep(0.000, 0.040, t);   // horizon → low blue
-    float s_lowToMid     = smoothstep(0.025, 0.120, t);   // low blue → mid blue
-    float s_midToUpper   = smoothstep(0.080, 0.400, t);   // mid → upper blue
-    float s_upperToZen   = smoothstep(0.350, 0.800, t);   // upper → zenith
+    // Film: horizon→blue transition is EXTREMELY fast (2-3% of frame height)
+    float s_horizonToLow = smoothstep(0.000, 0.020, t);   // horizon → low blue (tighter)
+    float s_lowToMid     = smoothstep(0.012, 0.065, t);   // low blue → mid blue (faster)
+    float s_midToUpper   = smoothstep(0.050, 0.350, t);   // mid → upper blue
+    float s_upperToZen   = smoothstep(0.300, 0.750, t);   // upper → zenith
 
     vec3 sky = uHorizonColor;
     sky = mix(sky, uLowBlueColor, s_horizonToLow);

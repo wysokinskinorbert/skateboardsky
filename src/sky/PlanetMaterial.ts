@@ -57,21 +57,22 @@ const bodyFragmentShader = /* glsl */ `
     float diffuse = max(dot(normal, sunDir), 0.0) * 0.5 + 0.5; // half-lambert for softer look
 
     // Surface detail — gas giant bands + storm patterns (film-accurate)
+    // Stronger contrast for visibility against dark zenith sky
     vec2 uv = vec2(atan(normal.z, normal.x) * 2.0, normal.y * 3.0);
-    // Horizontal bands (like Jupiter) — more prominent for visual distinction
-    float bands = noise(vec2(0.0, uv.y * 12.0)) * 0.20;
+    // Horizontal bands (like Jupiter) — prominent for visual distinction
+    float bands = noise(vec2(0.0, uv.y * 12.0)) * 0.30;
     // Storm swirls — large-scale vortex pattern
-    float storm1 = noise(uv * 4.0 + vec2(bands * 2.0, 0.0)) * 0.25;
-    float storm2 = noise(uv * 9.0 + vec2(storm1 * 3.0, bands)) * 0.14;
+    float storm1 = noise(uv * 4.0 + vec2(bands * 2.0, 0.0)) * 0.30;
+    float storm2 = noise(uv * 9.0 + vec2(storm1 * 3.0, bands)) * 0.18;
     // Fine texture
-    float detail = noise(uv * 18.0) * 0.08;
-    float surfaceNoise = bands + storm1 + storm2 + detail - 0.20;
+    float detail = noise(uv * 18.0) * 0.10;
+    float surfaceNoise = bands + storm1 + storm2 + detail - 0.25;
 
     // Fresnel — used for both limb darkening AND atmosphere rim glow
     float fresnel = dot(normal, viewDir);
 
-    // Limb darkening — edges darker
-    float limbDarkening = smoothstep(0.0, 0.5, fresnel) * 0.7 + 0.3;
+    // Limb darkening — softer, don't make edges too dark (planet needs to be visible)
+    float limbDarkening = smoothstep(0.0, 0.4, fresnel) * 0.6 + 0.4;
 
     vec3 bodyColor = uBodyColor * (1.0 + surfaceNoise) * diffuse * limbDarkening;
 

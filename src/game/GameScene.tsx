@@ -45,19 +45,20 @@ export function GameScene() {
       <Vegetation />
       <Road />
       <RoadProps />
-      <SakuraPetals />
+      {/* SakuraPetals disabled — not visible in keyframe_001, appears in later frames */}
+      {/* <SakuraPetals /> */}
       <PostProcessingStack />
 
       {/* Ambient fill light — cool blue like Shinkai shadows */}
       <ambientLight intensity={0.4} color="#8090C0" />
-      {/* Directional sun light — warm golden, matching sky sun position */}
+      {/* Directional sun light — warm golden, matching sun elevation 0.025 */}
       <directionalLight
         intensity={1.2}
         color="#FFE0B0"
         position={[
-          Math.sin(Math.PI * 0.9) * Math.cos(Math.PI * 0.10) * 100,
-          Math.sin(Math.PI * 0.10) * 100,
-          -Math.cos(Math.PI * 0.9) * Math.cos(Math.PI * 0.10) * 100,
+          Math.sin(Math.PI * 0.9) * Math.cos(Math.PI * 0.025) * 100,
+          Math.sin(Math.PI * 0.025) * 100,
+          -Math.cos(Math.PI * 0.9) * Math.cos(Math.PI * 0.025) * 100,
         ]}
       />
     </Canvas>

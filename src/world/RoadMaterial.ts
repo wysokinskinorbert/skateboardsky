@@ -76,9 +76,11 @@ const roadFragmentShader = /* glsl */ `
     float dashPattern = step(0.4, fract(uv.y * uRoadLength * 0.1));
     edgeLine *= dashPattern;
 
-    // === Sun lighting (half-lambert for softer look) ===
+    // === Sun lighting — high ambient because near road faces away from low sun ===
+    // Film road: #585858. With asphalt #959595 and noise -21%:
+    // need diffuse min 0.75 → #959595 * 0.75 * 0.79 ≈ #585858
     vec3 normal = normalize(vNormal);
-    float diffuse = max(dot(normal, normalize(uSunDirection)), 0.0) * 0.5 + 0.5;
+    float diffuse = max(dot(normal, normalize(uSunDirection)), 0.0) * 0.25 + 0.75;
 
     // === Combine ===
     vec3 color = asphalt * diffuse;
@@ -100,7 +102,7 @@ const roadFragmentShader = /* glsl */ `
 
 export function createRoadUniforms(sunDirection: THREE.Vector3) {
   return {
-    uAsphaltColor: { value: new THREE.Color('#888888') },
+    uAsphaltColor: { value: new THREE.Color('#959595') },  // lighter base for film-accurate grey
     uLineColor: { value: new THREE.Color('#E8C840') },
     uSunDirection: { value: sunDirection.clone().normalize() },
     uRoadLength: { value: 50.0 },
