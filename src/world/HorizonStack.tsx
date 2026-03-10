@@ -19,33 +19,36 @@ export function HorizonStack() {
 
   return (
     <group>
-      {/* Ocean/bay — flat water surface far below in the valley */}
+      {/* Ocean/bay — water surface in the valley below the mountain road.
+          Low y-position creates visible gap below terrain slopes. */}
       <OceanPlane />
 
-      {/* Mountain ridges — distant silhouettes with atmospheric haze */}
+      {/* Mountain ridges — 3 layers from near to far with increasing haze.
+          Positioned higher and larger for film-accurate visibility. */}
       <MountainRidge
-        position={[-100, -25, -500]}
-        scale={[700, 65, 1]}
-        color="#3A5A70"
-        hazeAmount={0.4}
+        position={[-40, -10, -250]}
+        scale={[550, 70, 1]}
+        color="#1E3A50"
+        hazeAmount={0.25}
       />
       <MountainRidge
-        position={[90, -22, -570]}
-        scale={[600, 50, 1]}
-        color="#4A6A82"
+        position={[30, -8, -320]}
+        scale={[600, 60, 1]}
+        color="#2A4A62"
+        hazeAmount={0.40}
+      />
+      <MountainRidge
+        position={[-15, -11, -400]}
+        scale={[700, 50, 1]}
+        color="#3A5A78"
         hazeAmount={0.55}
       />
-      <MountainRidge
-        position={[-30, -28, -650]}
-        scale={[800, 45, 1]}
-        color="#5878A0"
-        hazeAmount={0.7}
-      />
 
-      {/* City in the valley — very distant, heavily hazed silhouette */}
+      {/* City in the valley — coastal town spread along the bay.
+          Larger scale and higher position for film-accurate visibility. */}
       <CitySilhouette
-        position={[-20, -38, -420]}
-        scale={[500, 30, 1]}
+        position={[-5, -13, -200]}
+        scale={[400, 30, 1]}
         sunDirection={sunDirection}
       />
     </group>
@@ -56,18 +59,18 @@ export function HorizonStack() {
 
 function OceanPlane() {
   const uniforms = useMemo(() => ({
-    uShallowColor: { value: new THREE.Color('#3AA0B0') },
-    uDeepColor: { value: new THREE.Color('#1A5070') },
-    uHazeColor: { value: new THREE.Color('#B8D0E0') },
+    uShallowColor: { value: new THREE.Color('#30A8C0') },
+    uDeepColor: { value: new THREE.Color('#105878') },
+    uHazeColor: { value: new THREE.Color('#80AAC0') },
   }), [])
 
   return (
     <mesh
-      position={[0, -42, -400]}
+      position={[0, -18, -160]}
       rotation={[-Math.PI / 2, 0, 0]}
-      renderOrder={4}
+      renderOrder={3}
     >
-      <planeGeometry args={[1400, 900, 1, 1]} />
+      <planeGeometry args={[900, 550, 1, 1]} />
       <shaderMaterial
         vertexShader={oceanVertexShader}
         fragmentShader={oceanFragmentShader}
@@ -111,10 +114,10 @@ const oceanFragmentShader = /* glsl */ `
     float shimmer = hash(vWorldPosition.xz * 0.3) * 0.06;
     waterColor += shimmer;
 
-    // Atmospheric haze at distance
+    // Atmospheric haze at distance — reduced decay to keep vivid ocean color
     float dist = length(vWorldPosition - cameraPosition);
-    float haze = 1.0 - exp(-dist * 0.002);
-    waterColor = mix(waterColor, uHazeColor, haze);
+    float haze = 1.0 - exp(-dist * 0.0008);
+    waterColor = mix(waterColor, uHazeColor, haze * 0.7);
 
     gl_FragColor = vec4(waterColor, 1.0);
   }

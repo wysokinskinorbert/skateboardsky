@@ -25,37 +25,36 @@ export function Terrain() {
     uGrassDarkColor: { value: new THREE.Color('#2A7A22') },
   }), [sunDirection])
 
-  // Slope tilt: ~17° creates steep hillside descent into the valley
-  const slopeAngle = 0.30
+  // Slope tilt: ~30° steep hillside descent into the valley
+  const slopeAngle = 0.52
 
   return (
     <group>
-      {/* BASE GROUND — narrow flat strip along the road.
-          Just wide enough to cover the road + small shoulders. */}
+      {/* BASE GROUND — narrow strip at road level, near-camera only. */}
       <TerrainPlane
         uniforms={uniforms}
-        position={[0, 19, -100]}
+        position={[0, 21, 0]}
         rotation={[-Math.PI / 2, 0, 0]}
-        size={[70, 800]}
+        size={[50, 70]}
         fade="none"
       />
 
-      {/* LEFT HILLSIDE — steep slope from road-left into valley.
-          Inner edge (near road) at y≈22, outer edge drops to y≈-25. */}
+      {/* LEFT HILLSIDE — strip descending from road-left into valley.
+          Wider and longer than before to frame the road properly. */}
       <TerrainPlane
         uniforms={uniforms}
-        position={[-95, -2, -100]}
+        position={[-38, 8, -20]}
         rotation={[-Math.PI / 2, 0, -slopeAngle]}
-        size={[160, 800]}
+        size={[55, 150]}
         fade="right"
       />
 
-      {/* RIGHT HILLSIDE — steep slope from road-right into valley. */}
+      {/* RIGHT HILLSIDE — strip descending from road-right into valley. */}
       <TerrainPlane
         uniforms={uniforms}
-        position={[95, -2, -100]}
+        position={[38, 8, -20]}
         rotation={[-Math.PI / 2, 0, slopeAngle]}
-        size={[160, 800]}
+        size={[55, 150]}
         fade="left"
       />
     </group>
@@ -118,22 +117,32 @@ const terrainFragmentShader = /* glsl */ `
     // Atmospheric perspective — distant terrain fades to cool blue haze
     float distFromCam = length(vWorldPosition - cameraPosition);
     float distHaze = smoothstep(80.0, 450.0, distFromCam);
-    vec3 terrainHaze = vec3(0.50, 0.65, 0.75);
+    vec3 terrainHaze = vec3(0.45, 0.58, 0.68);
     color = mix(color, terrainHaze, distHaze * 0.5);
 
     float alpha = 1.0;
     if (uFadeMode == 1) {
-      // Fade all edges
-      alpha = smoothstep(0.0, 0.15, vUv.x) * smoothstep(1.0, 0.85, vUv.x)
-            * smoothstep(0.0, 0.15, vUv.y) * smoothstep(1.0, 0.85, vUv.y);
+      // Fade all edges — wider fade for smooth blending with HorizonStack
+      alpha = smoothstep(0.0, 0.20, vUv.x) * smoothstep(1.0, 0.80, vUv.x)
+            * smoothstep(0.0, 0.15, vUv.y) * smoothstep(1.0, 0.70, vUv.y);
     } else if (uFadeMode == 2) {
-      // Fade right edge only (road side for LEFT slope)
-      alpha = smoothstep(1.0, 0.70, vUv.x)
-            * smoothstep(0.0, 0.10, vUv.y) * smoothstep(1.0, 0.90, vUv.y);
+      // LEFT slope — organic fades with noise for natural hillside edge
+      float nEdge = noise(vWorldPosition.xz * 0.08) * 0.15;
+      float outerFade = smoothstep(0.0, 0.40 + nEdge, vUv.x);
+      float roadFade = smoothstep(1.0, 0.75, vUv.x);
+      float frontFade = smoothstep(0.0, 0.05, vUv.y);
+      float nFar = noise(vWorldPosition.xz * 0.05) * 0.12;
+      float farFade = smoothstep(1.0, 0.30 + nFar, vUv.y);
+      alpha = outerFade * roadFade * frontFade * farFade;
     } else if (uFadeMode == 3) {
-      // Fade left edge only (road side for RIGHT slope)
-      alpha = smoothstep(0.0, 0.30, vUv.x)
-            * smoothstep(0.0, 0.10, vUv.y) * smoothstep(1.0, 0.90, vUv.y);
+      // RIGHT slope — organic fades with noise for natural hillside edge
+      float nEdge = noise(vWorldPosition.xz * 0.08) * 0.15;
+      float roadFade = smoothstep(0.0, 0.25, vUv.x);
+      float outerFade = smoothstep(1.0, 0.60 - nEdge, vUv.x);
+      float frontFade = smoothstep(0.0, 0.05, vUv.y);
+      float nFar = noise(vWorldPosition.xz * 0.05) * 0.12;
+      float farFade = smoothstep(1.0, 0.30 + nFar, vUv.y);
+      alpha = roadFade * outerFade * frontFade * farFade;
     }
 
     gl_FragColor = vec4(color, alpha);
