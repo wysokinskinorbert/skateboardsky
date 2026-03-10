@@ -7,6 +7,7 @@ import { ToneMappingMode } from 'postprocessing'
 import * as THREE from 'three'
 import { COLOR_GRADING } from '../game/constants'
 import { LensFlare } from './LensFlare'
+import { GodRays } from './GodRays'
 import { AtmosphericHaze } from './AtmosphericHaze'
 import { ColorGrading } from './ColorGrading'
 
@@ -29,6 +30,7 @@ export function PostProcessingStack() {
         mipmapBlur
       />
       <LensFlare />
+      <GodRays />
       <AtmosphericHaze />
       <ToneMapping mode={ToneMappingMode.NEUTRAL} />
       <ColorGrading

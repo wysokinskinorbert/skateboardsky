@@ -99,6 +99,7 @@ export function CloudLayer({ layer }: CloudLayerProps) {
   )
 
   const backlightStrength = layer === 'front' ? 1.2 : 0.5
+  const driftMultiplier = layer === 'back' ? CLOUDS.backDriftMultiplier : CLOUDS.frontDriftMultiplier
 
   return (
     <group>
@@ -112,6 +113,7 @@ export function CloudLayer({ layer }: CloudLayerProps) {
           opacity={config.opacity}
           sunDirection={sunDirection}
           backlightStrength={backlightStrength}
+          driftMultiplier={driftMultiplier}
           renderOrder={renderOrder}
         />
       ))}
@@ -127,6 +129,7 @@ interface CloudCardProps {
   opacity: number
   sunDirection: THREE.Vector3
   backlightStrength: number
+  driftMultiplier: number
   renderOrder: number
 }
 
@@ -138,6 +141,7 @@ function CloudCard({
   opacity,
   sunDirection,
   backlightStrength,
+  driftMultiplier,
   renderOrder,
 }: CloudCardProps) {
   const meshRef = useRef<THREE.Mesh>(null)
@@ -155,15 +159,22 @@ function CloudCard({
     [seed, tint, opacity, sunDirection, backlightStrength]
   )
 
-  // Billboard + gentle wind drift
+  // Billboard + gentle wind drift + time uniform update
   useFrame(({ camera, clock }) => {
     if (meshRef.current) {
       meshRef.current.quaternion.copy(camera.quaternion)
 
-      // Slow sinusoidal drift — unique phase per cloud
       const t = clock.getElapsedTime()
-      const driftX = Math.sin(t * CLOUDS.driftSpeed + seed * 2.47) * scale * 0.3
-      const driftY = Math.sin(t * CLOUDS.driftSpeed * 0.7 + seed * 1.13) * scale * 0.08
+
+      // Update time uniform for cloud shape animation
+      if (uniforms.uTime) {
+        uniforms.uTime.value = t
+      }
+
+      // Slow sinusoidal drift — unique phase per cloud, parallax per layer
+      const speed = CLOUDS.driftSpeed * driftMultiplier
+      const driftX = Math.sin(t * speed + seed * 2.47) * scale * 0.3
+      const driftY = Math.sin(t * speed * 0.7 + seed * 1.13) * scale * 0.08
       meshRef.current.position.set(
         basePosition.x + driftX,
         basePosition.y + driftY,

@@ -21,10 +21,14 @@ const fragment = /* glsl */ `
   void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor) {
     vec3 color = inputColor.rgb;
 
-    // Brightness + Contrast
+    // Brightness + Film-style Contrast (shadow-protecting)
     color = color + uBrightness;
     if (uContrast > 0.0) {
-      color = (color - 0.5) / (1.0 - uContrast) + 0.5;
+      vec3 contrasted = (color - 0.5) / (1.0 - uContrast) + 0.5;
+      // Protect dark values from being crushed to black (film "toe" curve)
+      // Below ~0.12 brightness, use a gentle lift instead of harsh crush
+      vec3 shadowBlend = smoothstep(vec3(0.0), vec3(0.12), color);
+      color = mix(color * (1.0 + uContrast * 0.2), contrasted, shadowBlend);
     } else {
       color = (color - 0.5) * (1.0 + uContrast) + 0.5;
     }

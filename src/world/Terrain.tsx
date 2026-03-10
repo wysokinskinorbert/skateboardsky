@@ -1,4 +1,5 @@
-import { useMemo } from 'react'
+import { useMemo, useRef } from 'react'
+import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { SKY } from '../game/constants'
 
@@ -23,7 +24,13 @@ export function Terrain() {
     uSunDirection: { value: sunDirection },
     uGrassColor: { value: new THREE.Color('#40A835') },
     uGrassDarkColor: { value: new THREE.Color('#2A7A22') },
+    uTime: { value: 0.0 },
   }), [sunDirection])
+
+  // Update time uniform for cloud shadow animation
+  useFrame(({ clock }) => {
+    uniforms.uTime.value = clock.getElapsedTime()
+  })
 
   // Slope tilt: ~30° steep hillside descent into the valley
   const slopeAngle = 0.52
@@ -81,6 +88,7 @@ const terrainFragmentShader = /* glsl */ `
   uniform vec3 uGrassColor;
   uniform vec3 uGrassDarkColor;
   uniform int uFadeMode; // 0=none, 1=edges, 2=right only, 3=left only
+  uniform float uTime;
 
   varying vec3 vWorldPosition;
   varying vec3 vNormal;
@@ -114,6 +122,21 @@ const terrainFragmentShader = /* glsl */ `
     vec3 grassColor = mix(uGrassDarkColor, uGrassColor, grassMix);
 
     vec3 color = grassColor * diffuse;
+
+    // Cloud shadows — slowly drifting large-scale shadow patches
+    vec2 shadowUV = vWorldPosition.xz * 0.008 + vec2(uTime * 0.15, uTime * 0.08);
+    float cloudShadow1 = noise(shadowUV);
+    float cloudShadow2 = noise(shadowUV * 2.3 + vec2(5.0, 3.0));
+    float cloudShadow = cloudShadow1 * 0.6 + cloudShadow2 * 0.4;
+    // Sharpen: areas are either in sun or shadow
+    float shadowMask = smoothstep(0.35, 0.55, cloudShadow);
+    // Shadow areas: darker, slightly cooler (Shinkai cloud shadow style)
+    vec3 shadowColor = color * 0.65 * vec3(0.90, 0.95, 1.0);
+    color = mix(shadowColor, color, shadowMask);
+
+    // Sun-facing slope variation — warmer sunlit areas
+    float sunFacing = max(dot(normal, sunDir), 0.0);
+    color += vec3(0.04, 0.02, 0.0) * sunFacing;
 
     // Atmospheric perspective — distant terrain fades to cool blue haze
     float distFromCam = length(vWorldPosition - cameraPosition);

@@ -1,4 +1,5 @@
-import { useMemo } from 'react'
+import { useMemo, useRef } from 'react'
+import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { SKY } from '../game/constants'
 
@@ -47,10 +48,13 @@ export function HorizonStack() {
       {/* City in the valley — coastal town spread along the bay.
           Taller and more prominent to match film visibility. */}
       <CitySilhouette
-        position={[-5, -11, -180]}
-        scale={[380, 40, 1]}
+        position={[-5, -9, -170]}
+        scale={[420, 50, 1]}
         sunDirection={sunDirection}
       />
+
+      {/* Coastline — thin white foam/surf line where ocean meets land */}
+      <Coastline />
 
       {/* Haze veil — warm atmospheric band at the horizon line.
           Shinkai signature: golden/peach glow where sky meets ocean. */}
@@ -62,14 +66,21 @@ export function HorizonStack() {
 // ─── Ocean ──────────────────────────────────────────────
 
 function OceanPlane() {
+  const meshRef = useRef<THREE.Mesh>(null)
   const uniforms = useMemo(() => ({
     uShallowColor: { value: new THREE.Color('#30A8C0') },
     uDeepColor: { value: new THREE.Color('#105878') },
     uHazeColor: { value: new THREE.Color('#80AAC0') },
+    uTime: { value: 0.0 },
   }), [])
+
+  useFrame(({ clock }) => {
+    uniforms.uTime.value = clock.getElapsedTime()
+  })
 
   return (
     <mesh
+      ref={meshRef}
       position={[0, -18, -160]}
       rotation={[-Math.PI / 2, 0, 0]}
       renderOrder={3}
@@ -101,6 +112,7 @@ const oceanFragmentShader = /* glsl */ `
   uniform vec3 uShallowColor;
   uniform vec3 uDeepColor;
   uniform vec3 uHazeColor;
+  uniform float uTime;
 
   varying vec3 vWorldPosition;
   varying vec2 vUv;
@@ -109,13 +121,34 @@ const oceanFragmentShader = /* glsl */ `
     return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
   }
 
+  float noise(vec2 p) {
+    vec2 i = floor(p);
+    vec2 f = fract(p);
+    f = f * f * (3.0 - 2.0 * f);
+    float a = hash(i);
+    float b = hash(i + vec2(1.0, 0.0));
+    float c = hash(i + vec2(0.0, 1.0));
+    float d = hash(i + vec2(1.0, 1.0));
+    return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+  }
+
   void main() {
     // Gradient: shallow (near) → deep (far)
     float depthGrad = smoothstep(0.0, 1.0, vUv.y);
     vec3 waterColor = mix(uShallowColor, uDeepColor, depthGrad);
 
-    // Subtle shimmer
-    float shimmer = hash(vWorldPosition.xz * 0.3) * 0.06;
+    // Animated wave shimmer — layered moving noise
+    vec2 waveUV1 = vWorldPosition.xz * 0.04 + vec2(uTime * 0.3, uTime * 0.15);
+    vec2 waveUV2 = vWorldPosition.xz * 0.08 + vec2(-uTime * 0.2, uTime * 0.25);
+    float wave1 = noise(waveUV1) * 0.08;
+    float wave2 = noise(waveUV2) * 0.05;
+    float shimmer = wave1 + wave2;
+
+    // Sun specular highlights on wave crests
+    float specNoise = noise(vWorldPosition.xz * 0.15 + vec2(uTime * 0.4, 0.0));
+    float specHighlight = pow(specNoise, 3.0) * 0.12;
+    shimmer += specHighlight;
+
     waterColor += shimmer;
 
     // Atmospheric haze at distance — reduced decay to keep vivid ocean color
@@ -220,8 +253,8 @@ interface CitySilhouetteProps {
 function CitySilhouette({ position, scale, sunDirection }: CitySilhouetteProps) {
   const uniforms = useMemo(() => ({
     uSunDirection: { value: sunDirection },
-    uBuildingColor: { value: new THREE.Color('#2A3E50') },
-    uHazeColor: { value: new THREE.Color('#90ACC0') },
+    uBuildingColor: { value: new THREE.Color('#3A3828') },
+    uHazeColor: { value: new THREE.Color('#A09878') },
   }), [sunDirection])
 
   return (
@@ -286,8 +319,8 @@ const cityFragmentShader = /* glsl */ `
     float edgeFade = smoothstep(0.0, 0.2, vUv.x) * smoothstep(1.0, 0.8, vUv.x);
     alpha *= edgeFade;
 
-    // Atmospheric perspective — city is very distant, heavily hazed
-    vec3 color = mix(uBuildingColor, uHazeColor, 0.55);
+    // Atmospheric perspective — city distant but still visible
+    vec3 color = mix(uBuildingColor, uHazeColor, 0.35);
     color += windowBrightness;
 
     gl_FragColor = vec4(color, alpha);
@@ -346,6 +379,73 @@ const hazeVeilFragmentShader = /* glsl */ `
 
     // Horizontal fade at edges
     float edgeFade = smoothstep(0.0, 0.15, vUv.x) * smoothstep(1.0, 0.85, vUv.x);
+    alpha *= edgeFade;
+
+    gl_FragColor = vec4(color, alpha);
+  }
+`
+
+// ─── Coastline ──────────────────────────────────────
+
+function Coastline() {
+  const uniforms = useMemo(() => ({
+    uFoamColor: { value: new THREE.Color('#E0E8F0') },
+    uShoreColor: { value: new THREE.Color('#80A0B0') },
+  }), [])
+
+  return (
+    <mesh
+      position={[0, -16.5, -120]}
+      rotation={[-Math.PI / 2, 0, 0]}
+      renderOrder={3}
+    >
+      <planeGeometry args={[600, 15, 1, 1]} />
+      <shaderMaterial
+        vertexShader={coastlineVertexShader}
+        fragmentShader={coastlineFragmentShader}
+        uniforms={uniforms}
+        transparent
+        depthWrite={false}
+        side={THREE.DoubleSide}
+      />
+    </mesh>
+  )
+}
+
+const coastlineVertexShader = /* glsl */ `
+  varying vec2 vUv;
+
+  void main() {
+    vUv = uv;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`
+
+const coastlineFragmentShader = /* glsl */ `
+  uniform vec3 uFoamColor;
+  uniform vec3 uShoreColor;
+
+  varying vec2 vUv;
+
+  float hash(vec2 p) {
+    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+  }
+
+  void main() {
+    // Thin bright foam line along the shore
+    float foamLine = smoothstep(0.3, 0.5, vUv.y) * smoothstep(0.7, 0.5, vUv.y);
+
+    // Noisy edge for natural coastline shape
+    float noiseVal = hash(vec2(vUv.x * 50.0, 0.0));
+    foamLine *= smoothstep(0.0, 0.15 + noiseVal * 0.1, vUv.y)
+              * smoothstep(1.0, 0.85 - noiseVal * 0.1, vUv.y);
+
+    // Color: white foam fading to shore color
+    vec3 color = mix(uShoreColor, uFoamColor, foamLine);
+
+    // Alpha: visible as thin strip, fading at edges
+    float alpha = foamLine * 0.6;
+    float edgeFade = smoothstep(0.0, 0.1, vUv.x) * smoothstep(1.0, 0.9, vUv.x);
     alpha *= edgeFade;
 
     gl_FragColor = vec4(color, alpha);

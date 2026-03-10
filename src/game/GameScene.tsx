@@ -6,6 +6,9 @@ import { Planet } from '../sky/Planet'
 import { Road } from '../world/Road'
 import { Terrain } from '../world/Terrain'
 import { HorizonStack } from '../world/HorizonStack'
+import { RoadProps } from '../world/RoadProps'
+import { Vegetation } from '../world/Vegetation'
+import { SakuraPetals } from '../world/SakuraPetals'
 import { CameraSetup } from './CameraSetup'
 import { PostProcessingStack } from '../postprocessing/PostProcessingStack'
 import { CAMERA, COLOR_GRADING } from './constants'
@@ -39,11 +42,24 @@ export function GameScene() {
       <CloudLayer layer="front" />
       <HorizonStack />
       <Terrain />
+      <Vegetation />
       <Road />
+      <RoadProps />
+      <SakuraPetals />
       <PostProcessingStack />
 
       {/* Ambient fill light — cool blue like Shinkai shadows */}
-      <ambientLight intensity={0.3} color="#8090C0" />
+      <ambientLight intensity={0.4} color="#8090C0" />
+      {/* Directional sun light — warm golden, matching sky sun position */}
+      <directionalLight
+        intensity={1.2}
+        color="#FFE0B0"
+        position={[
+          Math.sin(Math.PI * 0.9) * Math.cos(Math.PI * 0.10) * 100,
+          Math.sin(Math.PI * 0.10) * 100,
+          -Math.cos(Math.PI * 0.9) * Math.cos(Math.PI * 0.10) * 100,
+        ]}
+      />
     </Canvas>
   )
 }

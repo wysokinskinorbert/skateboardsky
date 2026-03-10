@@ -106,7 +106,7 @@ export const LensFlare = forwardRef(function LensFlare(_props, ref) {
 
   const _proj = useMemo(() => new THREE.Vector3(), [])
 
-  useFrame(({ camera }) => {
+  useFrame(({ camera, clock }) => {
     _proj.copy(sunWorldPos).project(camera)
 
     const sx = (_proj.x + 1) / 2
@@ -118,7 +118,14 @@ export const LensFlare = forwardRef(function LensFlare(_props, ref) {
 
     // Fade out smoothly when sun nears screen edges or is behind camera
     const fade = behind ? 0 : edgeFade(sx, sy)
-    effect.uniforms.get('uIntensity')!.value = fade
+
+    // Sun-cloud occlusion — simulate clouds drifting across sun
+    const t = clock.getElapsedTime()
+    const occ1 = Math.sin(t * 0.12 + 1.5) * 0.5 + 0.5
+    const occ2 = Math.sin(t * 0.07 + 3.8) * 0.5 + 0.5
+    const cloudOcclusion = 0.3 + 0.7 * smoothstep(0.3, 0.6, occ1 * 0.6 + occ2 * 0.4)
+
+    effect.uniforms.get('uIntensity')!.value = fade * cloudOcclusion
   })
 
   return <primitive ref={ref} object={effect} dispose={null} />

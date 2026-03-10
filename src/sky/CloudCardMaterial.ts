@@ -1,9 +1,13 @@
 import * as THREE from 'three'
 
 /**
- * Procedural cloud billboard shader.
- * Generates cumulus-like shapes using FBM noise with soft alpha edges.
- * Supports sun backlighting (warm golden edge on sun-facing side).
+ * Procedural cloud billboard shader — film-accurate Shinkai cumulus.
+ * Features:
+ * - Time-based shape evolution (edges morph, wisps evolve)
+ * - Variable density (thin parts are semi-transparent)
+ * - Edge wisps/tendrils (high-freq noise at cloud boundaries)
+ * - Strong directional sun-side lighting (3D volumetric look)
+ * - Warm horizon bounce light on cloud bottoms
  */
 
 const vertexShader = /* glsl */ `
@@ -25,11 +29,11 @@ const fragmentShader = /* glsl */ `
   uniform vec3 uSunDirection;
   uniform vec3 uSunColor;
   uniform float uBacklightStrength;
+  uniform float uTime;
 
   varying vec2 vUv;
   varying vec3 vWorldPosition;
 
-  // Hash functions for noise
   float hash(vec2 p) {
     return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
   }
@@ -45,7 +49,6 @@ const fragmentShader = /* glsl */ `
     return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
   }
 
-  // FBM — fractal Brownian motion for cloud shape (5 octaves for detail)
   float fbm(vec2 p) {
     float value = 0.0;
     float amplitude = 0.5;
@@ -59,90 +62,85 @@ const fragmentShader = /* glsl */ `
   }
 
   void main() {
-    // Center UV: -1 to 1
     vec2 uv = vUv * 2.0 - 1.0;
-
-    // Elliptical distance — wider than tall (cumulus proportion)
     float dist = length(vec2(uv.x * 0.85, uv.y * 1.15));
 
-    // Domain warping — distort UV for organic irregular shapes
+    // Time-based shape evolution — slow morphing of cloud edges
+    vec2 timeOffset = vec2(uTime * 0.008, uTime * 0.005);
+
+    // Domain warping with time evolution for organic shape changes
     vec2 warpOffset = vec2(
-      fbm(uv * 1.2 + vec2(uSeed * 5.55, uSeed * 1.23)),
-      fbm(uv * 1.2 + vec2(uSeed * 2.33, uSeed * 8.91))
+      fbm(uv * 1.2 + vec2(uSeed * 5.55, uSeed * 1.23) + timeOffset),
+      fbm(uv * 1.2 + vec2(uSeed * 2.33, uSeed * 8.91) + timeOffset * 0.7)
     ) * 0.5;
 
-    // Cloud shape: FBM noise with warped coordinates
+    // Cloud shape with time-evolving noise
     vec2 noiseCoord = (uv + warpOffset) * 2.5 + vec2(uSeed * 13.37, uSeed * 7.42);
-    float cloudNoise = fbm(noiseCoord);
+    float cloudNoise = fbm(noiseCoord + timeOffset * 1.5);
+    float macroNoise = fbm(uv * 0.7 + warpOffset + vec2(uSeed * 3.14, uSeed * 2.72) + timeOffset * 0.5);
 
-    // Second noise at different scale for big lump variation
-    float macroNoise = fbm(uv * 0.7 + warpOffset + vec2(uSeed * 3.14, uSeed * 2.72));
-
-    // Cumulus shape: strong radial falloff so edges go to zero
-    float shape = (1.0 - dist * 1.8);                   // aggressive falloff — truly round
-    shape += (cloudNoise - 0.5) * 0.8;                 // strong noise — bumpy organic edges
-    shape += (macroNoise - 0.5) * 0.5;                 // big lumps
+    // Cumulus shape
+    float shape = (1.0 - dist * 1.8);
+    shape += (cloudNoise - 0.5) * 0.8;
+    shape += (macroNoise - 0.5) * 0.5;
     shape += smoothstep(-0.3, 0.5, uv.y) * 0.25;      // taller top (cumulus dome)
-    shape -= smoothstep(0.0, 0.3, -uv.y) * 0.2;       // flatter bottom
+    shape -= smoothstep(0.0, 0.3, -uv.y) * 0.2;        // flatter bottom
 
-    // Alpha: soft puffy edge
-    float alpha = smoothstep(-0.08, 0.3, shape);
-    alpha *= uOpacity;
+    // Edge wisps — high-freq detail at cloud boundaries for "cauliflower" texture
+    float edgeZone = smoothstep(0.25, -0.05, shape);
+    float wispNoise = fbm((uv + warpOffset) * 5.0 + timeOffset * 2.5 + vec2(uSeed * 11.1));
+    shape += edgeZone * (wispNoise - 0.4) * 0.35;
+
+    // Alpha with variable density — thin parts of cloud are semi-transparent
+    float baseAlpha = smoothstep(-0.08, 0.3, shape);
+    float densityNoise = noise((uv + warpOffset) * 3.0 + vec2(uSeed * 4.44) + timeOffset * 0.3);
+    float densityFactor = mix(0.5, 1.0, smoothstep(0.05, 0.45, shape) * (0.5 + 0.5 * densityNoise));
+    float alpha = baseAlpha * densityFactor * uOpacity;
 
     // Base cloud color
     vec3 color = uTint;
 
-    // --- 3D directional lighting (Shinkai signature) ---
-    // Project sun direction onto cloud's billboard plane
+    // --- 3D directional lighting ---
     vec3 toCamera = normalize(cameraPosition - vWorldPosition);
     vec3 cloudRight = normalize(cross(vec3(0.0, 1.0, 0.0), toCamera));
     vec3 cloudUp = normalize(cross(toCamera, cloudRight));
 
-    // Sun direction in cloud's local 2D space
     vec3 sunDirN = normalize(uSunDirection);
     float sunR = dot(sunDirN, cloudRight);
     float sunU = dot(sunDirN, cloudUp);
     vec2 sunOnPlane = normalize(vec2(sunR, sunU));
 
-    // How much this pixel faces the sun (-1=shadow side, +1=lit side)
     float sunFacing = dot(uv, sunOnPlane);
     float lightGrad = smoothstep(-0.5, 0.9, sunFacing);
 
-    // Shadow (blue-grey) and lit (white) — strong contrast for 3D volume
-    vec3 cloudShadow = vec3(0.50, 0.55, 0.72);  // distinct blue-grey shadow
-    vec3 cloudLit = vec3(1.0, 1.0, 1.0);         // bright white lit side
+    // Film-accurate shadow: much darker blue-grey (~38% brightness)
+    vec3 cloudShadow = vec3(0.38, 0.42, 0.62);
+    vec3 cloudLit = vec3(1.0, 1.0, 1.0);
     color *= mix(cloudShadow, cloudLit, lightGrad);
 
-    // Bottom darkening — cumulus clouds have flat darker bottoms
+    // Bottom darkening — cumulus flat dark bottoms
     float bottomDark = smoothstep(-0.6, 0.1, uv.y);
-    color *= 0.70 + 0.30 * bottomDark;
+    color *= 0.62 + 0.38 * bottomDark;
 
-    // Internal density variation — thicker parts slightly darker (volumetric feel)
-    float density = smoothstep(-0.05, 0.35, shape);
-    color *= 0.88 + 0.12 * (1.0 - density * 0.4);
+    // Internal density darkening
+    float intDensity = smoothstep(-0.05, 0.35, shape);
+    color *= 0.85 + 0.15 * (1.0 - intDensity * 0.4);
 
-    // Sun backlighting — warm golden edges (Shinkai signature)
-    // Reduced to preserve directional shadow visibility
+    // Sun backlighting — warm golden edges
     vec3 cloudDir = normalize(vWorldPosition);
     float sunDot = max(dot(cloudDir, normalize(uSunDirection)), 0.0);
     float backlight = pow(sunDot, 3.0) * uBacklightStrength;
 
-    // Translucent rim glow — only at thin edges, not flooding the whole cloud
     float edgeMask = smoothstep(0.20, -0.15, shape);
     color += uSunColor * backlight * edgeMask * 0.8;
-
-    // Subtle warm tint on sun-facing side (not overwhelming the shadow)
     color += vec3(0.05, 0.03, 0.0) * backlight * lightGrad * 0.3;
 
-    // Warm horizon bounce light on cloud bottoms (Shinkai signature)
-    // Low clouds near horizon pick up warm golden light from below
-    float lowCloud = 1.0 - smoothstep(-0.2, 0.3, uv.y);       // bottom portion
-    float nearHorizon = 1.0 - smoothstep(0.0, 0.2, normalize(vWorldPosition).y); // low elevation
+    // Warm horizon bounce light on cloud bottoms
+    float lowCloud = 1.0 - smoothstep(-0.2, 0.3, uv.y);
+    float nearHorizon = 1.0 - smoothstep(0.0, 0.2, normalize(vWorldPosition).y);
     color += vec3(0.15, 0.08, 0.02) * lowCloud * nearHorizon * 0.6;
 
-    // Discard fully transparent pixels
     if (alpha < 0.01) discard;
-
     gl_FragColor = vec4(color, alpha);
   }
 `
@@ -161,8 +159,9 @@ export function createCloudCardUniforms(config: CloudCardConfig) {
     uTint: { value: config.tint.clone() },
     uOpacity: { value: config.opacity },
     uSunDirection: { value: config.sunDirection.clone().normalize() },
-    uSunColor: { value: new THREE.Color('#FFE8C0') },  // warm gold backlight
+    uSunColor: { value: new THREE.Color('#FFE8C0') },
     uBacklightStrength: { value: config.backlightStrength },
+    uTime: { value: 0.0 },
   }
 }
 

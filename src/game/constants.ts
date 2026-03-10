@@ -68,6 +68,9 @@ export const CLOUDS = {
     opacity: 0.92,
   },
   driftSpeed: 0.02,
+  // Parallax: back layer drifts slower than front (depth illusion)
+  backDriftMultiplier: 0.4,
+  frontDriftMultiplier: 1.0,
 } as const
 
 // Road — serpentine mountain road going downhill
